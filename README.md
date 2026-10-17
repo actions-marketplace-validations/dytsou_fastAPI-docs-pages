@@ -216,4 +216,4 @@ Contributions welcome — star the repo, [open issues](https://github.com/dytsou
 
 ## License
 
-[MIT](LICENSE)
+This project is open source and available under the [MIT License](LICENSE).
