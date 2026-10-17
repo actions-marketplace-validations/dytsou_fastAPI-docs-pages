@@ -32,26 +32,26 @@ cat >"$spec" <<'EOF'
 EOF
 site="$tmpdir/site-swagger"
 "$root/build-site/build.sh" --openapi "$spec" --out "$site" --title "Smoke API" --renderer swagger
-test -f "$site/docs/index.html"
-test -f "$site/docs/openapi.json"
-test -f "$site/docs/swagger-ui-bundle.js"
-test -f "$site/.nojekyll"
+[[ -f "$site/docs/index.html" ]]
+[[ -f "$site/docs/openapi.json" ]]
+[[ -f "$site/docs/swagger-ui-bundle.js" ]]
+[[ -f "$site/.nojekyll" ]]
 grep -q 'supportedSubmitMethods: \[\]' "$site/docs/index.html"
 grep -q './openapi.json' "$site/docs/index.html"
 
 # --- build-site (redocly) ---
 site_redoc="$tmpdir/site-redocly"
 "$root/build-site/build.sh" --openapi "$spec" --out "$site_redoc" --title "Smoke API" --renderer redocly
-test -f "$site_redoc/docs/index.html"
-test -f "$site_redoc/docs/openapi.json"
-test ! -e "$site_redoc/docs/swagger-ui-bundle.js"
+[[ -f "$site_redoc/docs/index.html" ]]
+[[ -f "$site_redoc/docs/openapi.json" ]]
+[[ ! -e "$site_redoc/docs/swagger-ui-bundle.js" ]]
 grep -qiE 'redoc|rebilly' "$site_redoc/docs/index.html"
 
 # --- build-site (both) ---
 site_both="$tmpdir/site-both"
 "$root/build-site/build.sh" --openapi "$spec" --out "$site_both" --title "Smoke API" --renderer both
-test -f "$site_both/docs/swagger-ui-bundle.js"
-test -f "$site_both/redoc/index.html"
+[[ -f "$site_both/docs/swagger-ui-bundle.js" ]]
+[[ -f "$site_both/redoc/index.html" ]]
 grep -qiE 'redoc|rebilly' "$site_both/redoc/index.html"
 
 echo "smoke ok"

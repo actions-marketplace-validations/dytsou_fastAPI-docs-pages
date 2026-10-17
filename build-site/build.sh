@@ -53,7 +53,7 @@ build_swagger() {
   cp "$openapi_abs" "$docs_dir/openapi.json"
 
   for name in swagger-ui-bundle.js swagger-ui.css favicon-32x32.png; do
-    curl -fsSL "${CDN_BASE}/${name}" -o "${docs_dir}/${name}"
+    curl -fsSL --proto '=https' --tlsv1.2 "${CDN_BASE}/${name}" -o "${docs_dir}/${name}"
   done
 
   # Relative URLs; Try it out disabled (no live API from Pages).
@@ -119,6 +119,10 @@ case "$renderer" in
   both)
     build_swagger "$out/docs"
     build_redocly "$out/redoc"
+    ;;
+  *)
+    echo "error: unexpected renderer: $renderer" >&2
+    exit 2
     ;;
 esac
 
