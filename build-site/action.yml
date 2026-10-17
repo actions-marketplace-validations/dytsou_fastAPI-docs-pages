@@ -1,0 +1,26 @@
+name: Build OpenAPI static site
+description: Build a static Swagger UI site from an OpenAPI JSON file
+
+inputs:
+  openapi-path:
+    description: Path to openapi.json
+    required: true
+  out:
+    description: Site root output directory
+    required: true
+  title:
+    description: HTML title for the Swagger UI page
+    required: false
+    default: API docs
+
+runs:
+  using: composite
+  steps:
+    - name: Build site
+      shell: bash
+      run: |
+        set -euo pipefail
+        "${{ github.action_path }}/build.sh" \
+          --openapi "${{ inputs.openapi-path }}" \
+          --out "${{ inputs.out }}" \
+          --title "${{ inputs.title }}"

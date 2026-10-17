@@ -1,0 +1,34 @@
+name: API docs Pages
+description: >
+  Primary entry is the reusable workflow
+  dytsou/api-docs-pages/.github/workflows/publish.yml@v1.
+  This root action builds a static Swagger site from a single OpenAPI file
+  (same as build-site/).
+
+inputs:
+  openapi-path:
+    description: Path to openapi.json
+    required: true
+  out:
+    description: Site root output directory
+    required: true
+  title:
+    description: HTML title for the Swagger UI page
+    required: false
+    default: API docs
+
+runs:
+  using: composite
+  steps:
+    - name: Build site
+      shell: bash
+      run: |
+        set -euo pipefail
+        "${{ github.action_path }}/build-site/build.sh" \
+          --openapi "${{ inputs.openapi-path }}" \
+          --out "${{ inputs.out }}" \
+          --title "${{ inputs.title }}"
+
+branding:
+  icon: book-open
+  color: blue

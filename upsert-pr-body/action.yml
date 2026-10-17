@@ -1,0 +1,40 @@
+name: Upsert API docs PR body links
+description: Append or update GitHub Pages API docs preview links at the end of a PR body
+
+inputs:
+  owner:
+    description: Repository owner
+    required: true
+  repo:
+    description: Repository name (without owner)
+    required: true
+  pr-number:
+    description: Pull request number
+    required: true
+  removed:
+    description: When true, write the closed/removed notice instead of preview links
+    required: false
+    default: "false"
+  token:
+    description: Token with pull-requests write
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Patch PR body
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        set -euo pipefail
+        args=(
+          --owner "${{ inputs.owner }}"
+          --repo "${{ inputs.repo }}"
+          --pr "${{ inputs.pr-number }}"
+        )
+        if [[ "${{ inputs.removed }}" == "true" ]]; then
+          args+=(--removed)
+        fi
+        "${{ github.action_path }}/patch.sh" "${args[@]}"

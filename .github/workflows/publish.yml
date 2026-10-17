@@ -1,0 +1,126 @@
+name: Publish API docs to GitHub Pages
+
+on:
+  workflow_call:
+    inputs:
+      export-command:
+        description: >
+          Shell command that writes openapi-path for the current tree.
+          Env API_DOCS_TREE_ROOT and API_DOCS_WORKSPACE are available.
+        type: string
+        required: true
+      openapi-path:
+        description: OpenAPI file path relative to each tree root
+        type: string
+        required: false
+        default: openapi.json
+      working-directory:
+        description: Directory (relative to tree root) where export-command runs
+        type: string
+        required: false
+        default: "."
+      setup-command:
+        description: Optional one-time setup in the primary checkout (e.g. uv sync)
+        type: string
+        required: false
+        default: ""
+      title:
+        description: HTML title for Swagger UI
+        type: string
+        required: false
+        default: API docs
+      pages-out:
+        description: Directory uploaded as the Pages artifact
+        type: string
+        required: false
+        default: _site
+
+# One full-site deploy at a time (artifact replaces the whole Pages site).
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build API docs site
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out caller repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Fetch default branch for main tree
+        run: git fetch --no-tags origin "${{ github.event.repository.default_branch }}:refs/remotes/origin/${{ github.event.repository.default_branch }}"
+
+      - name: Setup (caller)
+        if: inputs.setup-command != ''
+        run: bash -euo pipefail -c "${{ inputs.setup-command }}"
+
+      - name: Assemble Pages site
+        uses: dytsou/api-docs-pages/assemble@v1
+        with:
+          out: ${{ inputs.pages-out }}
+          repo: ${{ github.repository }}
+          export-command: ${{ inputs.export-command }}
+          openapi-path: ${{ inputs.openapi-path }}
+          working-directory: ${{ inputs.working-directory }}
+          default-ref: origin/${{ github.event.repository.default_branch }}
+          omit-pr: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.number || '' }}
+          title: ${{ inputs.title }}
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+        with:
+          path: ${{ inputs.pages-out }}
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  pr-body:
+    name: Upsert PR body API docs links
+    needs: deploy
+    if: >
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Append or update API docs links at end of PR body
+        uses: dytsou/api-docs-pages/upsert-pr-body@v1
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          pr-number: ${{ github.event.pull_request.number }}
+          removed: ${{ github.event.action == 'closed' }}
