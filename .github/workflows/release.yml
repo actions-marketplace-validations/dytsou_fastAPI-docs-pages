@@ -1,0 +1,144 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to publish (e.g. v1.0.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed # v2.22.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "error: tag must look like v1.2.3 (got: $TAG)" >&2
+            exit 1
+          fi
+          MAJOR="${TAG%%.*}" # v1.2.3 → v1
+          PRERELEASE=false
+          if [[ "$TAG" == *-* ]]; then
+            PRERELEASE=true
+          fi
+          echo "tag=$TAG" >>"$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >>"$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >>"$GITHUB_OUTPUT"
+          echo "Resolved tag=$TAG major=$MAJOR prerelease=$PRERELEASE"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          prerelease: ${{ steps.tag.outputs.prerelease == 'true' }}
+          draft: false
+          generate_release_notes: true
+          body: |
+            ## FastAPI Docs Pages ${{ steps.tag.outputs.tag }}
+
+            Publish a static Swagger UI (`/docs/`) to **GitHub Pages** for `main` and each same-repo PR, and append preview links to the PR description.
+
+            Consumers only export OpenAPI JSON — this action never imports your app.
+
+            ### Usage (reusable workflow)
+
+            ```yaml
+            # .github/workflows/api-docs-pages.yml
+            name: API Docs Pages
+
+            on:
+              push:
+                branches: [main]
+              pull_request:
+                types: [opened, synchronize, reopened, closed]
+              workflow_dispatch:
+
+            permissions:
+              contents: read
+              pages: write
+              id-token: write
+              pull-requests: write
+
+            jobs:
+              api-docs:
+                uses: dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@${{ steps.tag.outputs.major }}
+                with:
+                  setup-command: |
+                    cd backend && uv python install 3.13 && uv sync --locked --no-build
+                  export-command: |
+                    PYTHONPATH="$API_DOCS_TREE_ROOT/backend" \
+                      uv run --locked --project "$API_DOCS_WORKSPACE/backend" \
+                      python scripts/export_openapi.py -o "$API_DOCS_TREE_ROOT/backend/openapi.json"
+                  openapi-path: backend/openapi.json
+                  title: My API
+            ```
+
+            Pin the major tag (`@${{ steps.tag.outputs.major }}`) for floating updates within this major, or pin `@${{ steps.tag.outputs.tag }}` for a fixed release.
+
+            ### Composite actions
+
+            | Action | Purpose |
+            | ------ | ------- |
+            | `dytsou/fastAPI-docs-pages/build-site@${{ steps.tag.outputs.major }}` | One `openapi.json` → static site |
+            | `dytsou/fastAPI-docs-pages/assemble@${{ steps.tag.outputs.major }}` | Main + PR previews |
+            | `dytsou/fastAPI-docs-pages/upsert-pr-body@${{ steps.tag.outputs.major }}` | Append / update PR body links |
+            | `dytsou/fastAPI-docs-pages@${{ steps.tag.outputs.major }}` | Alias of `build-site` |
+
+            ### Preview URLs
+
+            | Surface | Path |
+            | ------- | ---- |
+            | Main | `https://<owner>.github.io/<repo>/docs/` |
+            | Same-repo PR | `https://<owner>.github.io/<repo>/pr-preview/pr-<n>/docs/` |
+
+            ### Notes
+
+            - Enable **Settings → Pages → Source: GitHub Actions** on the consumer repository.
+            - Fork / cross-repository PRs are skipped.
+            - Swagger **Try it out** is disabled on the static site.
+            - Docs: [README](https://github.com/dytsou/fastAPI-docs-pages#readme) · [繁體中文](https://github.com/dytsou/fastAPI-docs-pages/blob/main/README-zh.md)
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Move major version tag
+        if: steps.tag.outputs.prerelease != 'true'
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.tag.outputs.tag }}"
+          MAJOR="${{ steps.tag.outputs.major }}"
+          git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}"
+          git tag -f "$MAJOR" "$TAG"
+          git push -f origin "refs/tags/${MAJOR}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

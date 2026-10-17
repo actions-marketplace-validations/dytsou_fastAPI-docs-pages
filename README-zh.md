@@ -2,7 +2,7 @@
 
 把靜態 Swagger UI（`/docs/`）發到 GitHub Pages：涵蓋 `main` 與每個同 repo PR，並把預覽連結加到 PR 描述結尾。
 
-[![GitHub release](https://img.shields.io/github/v/release/dytsou/fastAPI-docs-pages?label=v1)](https://github.com/dytsou/fastAPI-docs-pages/releases)
+[![GitHub release](https://img.shields.io/github/v/release/dytsou/fastAPI-docs-pages)](https://github.com/dytsou/fastAPI-docs-pages/releases)
 [![CI](https://github.com/dytsou/fastAPI-docs-pages/actions/workflows/ci.yml/badge.svg)](https://github.com/dytsou/fastAPI-docs-pages/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
