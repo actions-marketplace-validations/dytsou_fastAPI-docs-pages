@@ -1,7 +1,7 @@
 name: API docs Pages
 description: >
   Primary entry is the reusable workflow
-  dytsou/api-docs-pages/.github/workflows/publish.yml@v1.
+  dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1.
   This root action builds a static Swagger site from a single OpenAPI file
   (same as build-site/).
 

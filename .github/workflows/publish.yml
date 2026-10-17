@@ -68,7 +68,7 @@ jobs:
         run: bash -euo pipefail -c "${{ inputs.setup-command }}"
 
       - name: Assemble Pages site
-        uses: dytsou/api-docs-pages/assemble@v1
+        uses: dytsou/fastAPI-docs-pages/assemble@v1
         with:
           out: ${{ inputs.pages-out }}
           repo: ${{ github.repository }}
@@ -118,7 +118,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Append or update API docs links at end of PR body
-        uses: dytsou/api-docs-pages/upsert-pr-body@v1
+        uses: dytsou/fastAPI-docs-pages/upsert-pr-body@v1
         with:
           owner: ${{ github.repository_owner }}
           repo: ${{ github.event.repository.name }}

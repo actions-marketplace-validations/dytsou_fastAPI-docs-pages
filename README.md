@@ -1,4 +1,4 @@
-# api-docs-pages
+# fastAPI-docs-pages
 
 Publish a static Swagger UI (`/docs/`) to **GitHub Pages** for `main` and each same-repo PR, and append preview links to the PR description.
 
@@ -25,7 +25,7 @@ permissions:
 
 jobs:
   api-docs:
-    uses: dytsou/api-docs-pages/.github/workflows/publish.yml@v1
+    uses: dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1
     with:
       setup-command: |
         cd backend && uv python install 3.13 && uv sync --locked --no-build
@@ -64,10 +64,10 @@ For each git tree (default branch + open same-repo PRs), the workflow runs `expo
 
 | Action | Purpose |
 |--------|---------|
-| `dytsou/api-docs-pages/build-site@v1` | One `openapi.json` → static site |
-| `dytsou/api-docs-pages/assemble@v1` | Main + PR previews |
-| `dytsou/api-docs-pages/upsert-pr-body@v1` | Append/update PR body links |
-| `dytsou/api-docs-pages@v1` | Alias of `build-site` |
+| `dytsou/fastAPI-docs-pages/build-site@v1` | One `openapi.json` → static site |
+| `dytsou/fastAPI-docs-pages/assemble@v1` | Main + PR previews |
+| `dytsou/fastAPI-docs-pages/upsert-pr-body@v1` | Append/update PR body links |
+| `dytsou/fastAPI-docs-pages@v1` | Alias of `build-site` |
 
 Prefer the reusable workflow unless you need a custom deploy pipeline.
 
