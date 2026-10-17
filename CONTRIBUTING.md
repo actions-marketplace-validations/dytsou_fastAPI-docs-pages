@@ -51,7 +51,7 @@ Layout:
 bash tests/smoke.sh
 ```
 
-This checks PR-body upsert logic and builds Swagger / Redocly / both renderers (Redocly needs Node.js / `npx` on your PATH).
+This checks PR-body upsert logic and builds Swagger / Redocly / both renderers (Redocly needs Node.js 26+ / `npx` on your PATH).
 
 3. Optional: build a site from a local OpenAPI file:
 

@@ -5,8 +5,8 @@
 set -euo pipefail
 
 # Pin versions; bump intentionally when upgrading.
-SWAGGER_UI_VERSION="${SWAGGER_UI_VERSION:-5.18.3}"
-REDOCLY_CLI_VERSION="${REDOCLY_CLI_VERSION:-1.34.5}"
+SWAGGER_UI_VERSION="${SWAGGER_UI_VERSION:-5.33.3}"
+REDOCLY_CLI_VERSION="${REDOCLY_CLI_VERSION:-2.64.1}"
 CDN_BASE="https://cdn.jsdelivr.net/npm/swagger-ui-dist@${SWAGGER_UI_VERSION}"
 
 openapi=""
