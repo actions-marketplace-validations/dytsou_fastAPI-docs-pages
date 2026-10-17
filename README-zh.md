@@ -11,6 +11,7 @@
 ## 目錄
 
 - [快速開始](#快速開始)
+- [用 path filters 省 CI](#用-path-filters-省-ci)
 - [網址](#網址)
 - [Renderers](#renderers)
 - [Workflow 輸入](#workflow-輸入)
@@ -30,11 +31,18 @@
 # .github/workflows/api-docs-pages.yml
 name: API Docs Pages
 
+# 建議加 path filters，只在 OpenAPI 來源有變時重建（見「用 path filters 省 CI」）。
 on:
   push:
     branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/api-docs-pages.yml"
   pull_request:
     types: [opened, synchronize, reopened, closed]
+    paths:
+      - "backend/**"
+      - ".github/workflows/api-docs-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -58,6 +66,29 @@ jobs:
 ```
 
 3. **Workflow 通過後打開預覽** — 見 [網址](#網址)。
+
+## 用 path filters 省 CI
+
+Path filters 寫在 **caller** workflow（`on.push.paths` / `on.pull_request.paths`），不是這個 reusable workflow 裡。OpenAPI 通常來自 API 程式，前端或純文件 PR 不必重建文件站。
+
+建議寫法：
+
+```yaml
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"                           # 擁有 OpenAPI schema 的應用
+      - ".github/workflows/api-docs-pages.yml" # caller 本身變更時也要重跑
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - "backend/**"
+      - ".github/workflows/api-docs-pages.yml"
+  workflow_dispatch:                           # 保留手動完整重建
+```
+
+依專案目錄調整 glob（例如 `src/**`、`app/**`）。`workflow_dispatch` 不要加 `paths`，方便手動強制重建。
 
 ### 基本用法
 

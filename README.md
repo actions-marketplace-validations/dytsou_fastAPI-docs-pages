@@ -11,6 +11,7 @@ Publish static API docs (Swagger UI and/or Redocly) to GitHub Pages for `main` a
 ## Table of contents
 
 - [Quick Start](#quick-start)
+- [Save CI minutes with path filters](#save-ci-minutes-with-path-filters)
 - [URLs](#urls)
 - [Renderers](#renderers)
 - [Workflow inputs](#workflow-inputs)
@@ -30,11 +31,19 @@ Publish static API docs (Swagger UI and/or Redocly) to GitHub Pages for `main` a
 # .github/workflows/api-docs-pages.yml
 name: API Docs Pages
 
+# Prefer path filters so docs only rebuild when OpenAPI inputs change
+# (see Save CI minutes with path filters).
 on:
   push:
     branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/api-docs-pages.yml"
   pull_request:
     types: [opened, synchronize, reopened, closed]
+    paths:
+      - "backend/**"
+      - ".github/workflows/api-docs-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -58,6 +67,29 @@ jobs:
 ```
 
 3. **Open the preview** after the workflow is green — see [URLs](#urls).
+
+## Save CI minutes with path filters
+
+Path filters belong on the **caller** workflow (`on.push.paths` / `on.pull_request.paths`), not inside this reusable workflow. OpenAPI usually comes from your API app, so skip unrelated changes (frontend-only PRs, markdown docs, etc.).
+
+Recommended pattern:
+
+```yaml
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"                           # app that owns the OpenAPI schema
+      - ".github/workflows/api-docs-pages.yml" # redeploy when the caller changes
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - "backend/**"
+      - ".github/workflows/api-docs-pages.yml"
+  workflow_dispatch:                           # always allow a manual rebuild
+```
+
+Adjust the globs to match your layout (e.g. `src/**`, `app/**`). Keep `workflow_dispatch` unfiltered so you can force a full site rebuild.
 
 ### Basic Usage
 
