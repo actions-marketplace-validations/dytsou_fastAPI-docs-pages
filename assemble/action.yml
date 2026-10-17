@@ -63,12 +63,14 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.token }}
         API_DOCS_WORKSPACE: ${{ github.workspace }}
+        # Pass via env so nested quotes/$ in the command are not re-parsed.
+        API_DOCS_EXPORT_COMMAND: ${{ inputs.export-command }}
       run: |
         set -euo pipefail
         args=(
           --out "${{ inputs.out }}"
           --repo "${{ inputs.repo }}"
-          --export-command "${{ inputs.export-command }}"
+          --export-command "$API_DOCS_EXPORT_COMMAND"
           --openapi-path "${{ inputs.openapi-path }}"
           --working-directory "${{ inputs.working-directory }}"
           --default-ref "${{ inputs.default-ref }}"
