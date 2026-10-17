@@ -1,8 +1,5 @@
 name: 'FastAPI Docs Pages'
-description: >-
-  Build a static Swagger UI site from an OpenAPI JSON file.
-  Prefer the reusable workflow:
-  dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1
+description: 'Build a static Swagger UI site from an OpenAPI JSON file for GitHub Pages.'
 author: 'dytsou'
 
 branding:
