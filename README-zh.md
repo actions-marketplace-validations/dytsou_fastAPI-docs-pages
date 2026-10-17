@@ -2,9 +2,9 @@
 
 把靜態 API 文件（Swagger UI 與／或 Redocly）發到 GitHub Pages：涵蓋 `main` 與每個同 repo PR，並把預覽連結加到 PR 描述結尾。
 
-[![GitHub release](https://img.shields.io/github/v/release/dytsou/fastAPI-docs-pages)](https://github.com/dytsou/fastAPI-docs-pages/releases)
-[![CI](https://github.com/dytsou/fastAPI-docs-pages/actions/workflows/ci.yml/badge.svg)](https://github.com/dytsou/fastAPI-docs-pages/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![GitHub release](https://img.shields.io/github/v/release/dytsou/fastAPI-docs-pages)
+![CI](https://github.com/dytsou/fastAPI-docs-pages/actions/workflows/ci.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
 [English](README.md) · [繁體中文](README-zh.md)
 
@@ -25,19 +25,20 @@
 ## 快速開始
 
 1. **開啟 GitHub Pages** — Settings → Pages → Source: **GitHub Actions**。可依需要保護 `github-pages` Environment。
-2. **加入 caller workflow**（把 export 指令換成你專案寫出 OpenAPI JSON 的方式）：
+2. **加入 caller workflow**（把 export 指令換成你專案寫出 OpenAPI JSON 的方式）：  
+可依專案目錄調整 glob（例如 `src/**`、`app/**`）。`workflow_dispatch` 不要加 `paths`，方便手動強制重建。
 
 ```yaml
 # .github/workflows/api-docs-pages.yml
 name: API Docs Pages
 
-# 建議加 path filters，只在 OpenAPI 來源有變時重建（見「用 path filters 省 CI」）。
+# 建議加 path filters，只在 OpenAPI 來源有變時重建
 on:
   push:
     branches: [main]
     paths:
-      - "backend/**"
-      - ".github/workflows/api-docs-pages.yml"
+      - "backend/**"                           # 擁有 OpenAPI schema 的應用
+      - ".github/workflows/api-docs-pages.yml" # caller 本身變更時也要重跑
   pull_request:
     types: [opened, synchronize, reopened, closed]
     paths:
@@ -66,29 +67,6 @@ jobs:
 ```
 
 3. **Workflow 通過後打開預覽** — 見 [網址](#網址)。
-
-## 用 path filters 省 CI
-
-Path filters 寫在 **caller** workflow（`on.push.paths` / `on.pull_request.paths`），不是這個 reusable workflow 裡。OpenAPI 通常來自 API 程式，前端或純文件 PR 不必重建文件站。
-
-建議寫法：
-
-```yaml
-on:
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"                           # 擁有 OpenAPI schema 的應用
-      - ".github/workflows/api-docs-pages.yml" # caller 本身變更時也要重跑
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    paths:
-      - "backend/**"
-      - ".github/workflows/api-docs-pages.yml"
-  workflow_dispatch:                           # 保留手動完整重建
-```
-
-依專案目錄調整 glob（例如 `src/**`、`app/**`）。`workflow_dispatch` 不要加 `paths`，方便手動強制重建。
 
 ### 基本用法
 
@@ -122,11 +100,11 @@ with:
 ## 網址
 
 
-| 用途 | 路徑 |
-| ---- | ---- |
-| Main（預設 docs） | `https://<owner>.github.io/<repo>/docs/` |
-| Main（Redocly，`renderer: both`） | `https://<owner>.github.io/<repo>/redoc/` |
-| 同 repo PR | `https://<owner>.github.io/<repo>/pr-preview/pr-<n>/docs/` |
+| 用途                             | 路徑                                                         |
+| ------------------------------ | ---------------------------------------------------------- |
+| Main（預設 docs）                  | `https://<owner>.github.io/<repo>/docs/`                   |
+| Main（Redocly，`renderer: both`） | `https://<owner>.github.io/<repo>/redoc/`                  |
+| 同 repo PR                      | `https://<owner>.github.io/<repo>/pr-preview/pr-<n>/docs/` |
 
 
 部署後，同 repo PR 會在描述**結尾**追加連結（由 CI 管理 marker；不必在 PR template 預留）。
@@ -136,11 +114,12 @@ with:
 在 reusable workflow（或 `build-site` / `assemble`）設定 `renderer`：
 
 
-| 值 | 輸出 |
-| -- | ---- |
-| `swagger`（預設） | `/docs/` 為 Swagger UI |
-| `redocly` | `/docs/` 為 Redocly HTML |
-| `both` | `/docs/` 為 Swagger UI，`/redoc/` 為 Redocly |
+| 值             | 輸出                                        |
+| ------------- | ----------------------------------------- |
+| `swagger`（預設） | `/docs/` 為 Swagger UI                     |
+| `redocly`     | `/docs/` 為 Redocly HTML                   |
+| `both`        | `/docs/` 為 Swagger UI，`/redoc/` 為 Redocly |
+
 
 Redocly 建置使用 pinned 的 `@redocly/cli`（經 `npx`；需要時會自動 setup Node.js）。
 
@@ -157,25 +136,27 @@ with:
 Reusable workflow：`dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1`
 
 
-| 名稱 | 必填 | 預設 | 說明 |
-| :--- | :--- | :--- | :--- |
-| `export-command` | 是 | — | 為當前 tree 寫出 `openapi-path` 的 shell |
-| `openapi-path` | 否 | `openapi.json` | 相對於各 tree 根目錄的 OpenAPI 路徑 |
-| `working-directory` | 否 | `.` | 執行 `export-command` 的目錄（相對 tree 根） |
-| `setup-command` | 否 | _(空)_ | 在 primary checkout 做一次的準備（如 `uv sync`） |
-| `title` | 否 | `API docs` | 文件頁 HTML title |
-| `renderer` | 否 | `swagger` | `swagger`、`redocly` 或 `both` |
-| `pages-out` | 否 | `_site` | 上傳為 Pages artifact 的目錄 |
+| 名稱                  | 必填  | 預設             | 說明                                     |
+| :------------------- | :--- | :-------------- | :-------------------------------------- |
+| `export-command`    | 是   | —              | 為當前 tree 寫出 `openapi-path` 的 shell     |
+| `openapi-path`      | 否   | `openapi.json` | 相對於各 tree 根目錄的 OpenAPI 路徑              |
+| `working-directory` | 否   | `.`            | 執行 `export-command` 的目錄（相對 tree 根）     |
+| `setup-command`     | 否   | *(空)*          | 在 primary checkout 做一次的準備（如 `uv sync`） |
+| `title`             | 否   | `API docs`     | 文件頁 HTML title                         |
+| `renderer`          | 否   | `swagger`      | `swagger`、`redocly` 或 `both`           |
+| `pages-out`         | 否   | `_site`        | 上傳為 Pages artifact 的目錄                 |
+
 
 ## 匯出契約
 
 對每個 git tree（default branch + 開啟中的同 repo PR），workflow 會執行 `export-command`，並帶入：
 
 
-| Env | 意義 |
-| --- | ---- |
-| `API_DOCS_TREE_ROOT` | 該 tree worktree 的絕對路徑 |
+| Env                  | 意義                                           |
+| -------------------- | -------------------------------------------- |
+| `API_DOCS_TREE_ROOT` | 該 tree worktree 的絕對路徑                        |
 | `API_DOCS_WORKSPACE` | Primary `actions/checkout` workspace（工具鏈裝這裡） |
+
 
 `export-command` 必須寫出 `openapi-path`（相對 tree 根目錄）。此 action **不會** import 你的應用程式。
 
@@ -184,12 +165,13 @@ Reusable workflow：`dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1`
 優先使用 reusable workflow。需要自訂 deploy 流程時再用：
 
 
-| Action | 用途 |
-| ------ | ---- |
-| `dytsou/fastAPI-docs-pages/build-site@v1` | 單一 `openapi.json` → 靜態站 |
-| `dytsou/fastAPI-docs-pages/assemble@v1` | Main + PR 預覽 |
-| `dytsou/fastAPI-docs-pages/upsert-pr-body@v1` | 追加／更新 PR body 連結 |
-| `dytsou/fastAPI-docs-pages@v1` | `build-site` 別名 |
+| Action                                        | 用途                      |
+| --------------------------------------------- | ----------------------- |
+| `dytsou/fastAPI-docs-pages/build-site@v1`     | 單一 `openapi.json` → 靜態站 |
+| `dytsou/fastAPI-docs-pages/assemble@v1`       | Main + PR 預覽            |
+| `dytsou/fastAPI-docs-pages/upsert-pr-body@v1` | 追加／更新 PR body 連結        |
+| `dytsou/fastAPI-docs-pages@v1`                | `build-site` 別名         |
+
 
 ### 基本用法（`build-site`）
 
@@ -226,12 +208,13 @@ bash tests/smoke.sh
 ### 常見狀況
 
 
-| 現象 | 可能原因 |
-| ---- | -------- |
-| PR 上 build 被跳過 | Fork／跨 repo PR（v1 不支援） |
-| `export-command did not write …` | `openapi-path` 與實際寫入路徑不一致 |
-| Swagger 空白或壞掉 | export 產出的 OpenAPI JSON 無效 |
-| PR body 沒變 | 缺少 `pull-requests: write`，或內容已相同 |
+| 現象                               | 可能原因                             |
+| -------------------------------- | -------------------------------- |
+| PR 上 build 被跳過                   | Fork／跨 repo PR（v1 不支援）           |
+| `export-command did not write …` | `openapi-path` 與實際寫入路徑不一致        |
+| Swagger 空白或壞掉                    | export 產出的 OpenAPI JSON 無效       |
+| PR body 沒變                       | 缺少 `pull-requests: write`，或內容已相同 |
+
 
 ## 貢獻
 
