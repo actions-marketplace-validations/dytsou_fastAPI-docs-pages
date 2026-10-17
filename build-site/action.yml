@@ -1,17 +1,22 @@
-name: Build OpenAPI static site
-description: Build a static Swagger UI site from an OpenAPI JSON file
+name: 'Build OpenAPI static site'
+description: 'Build a static Swagger UI site from an OpenAPI JSON file'
+author: 'dytsou'
+
+branding:
+  icon: 'book-open'
+  color: 'blue'
 
 inputs:
   openapi-path:
-    description: Path to openapi.json
+    description: 'Path to openapi.json'
     required: true
   out:
-    description: Site root output directory
+    description: 'Site root output directory'
     required: true
   title:
-    description: HTML title for the Swagger UI page
+    description: 'HTML title for the Swagger UI page'
     required: false
-    default: API docs
+    default: 'API docs'
 
 runs:
   using: composite

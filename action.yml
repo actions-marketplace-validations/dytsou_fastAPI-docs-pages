@@ -1,21 +1,25 @@
-name: API docs Pages
-description: >
-  Primary entry is the reusable workflow
-  dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1.
-  This root action builds a static Swagger site from a single OpenAPI file
-  (same as build-site/).
+name: 'FastAPI Docs Pages'
+description: >-
+  Build a static Swagger UI site from an OpenAPI JSON file.
+  Prefer the reusable workflow:
+  dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1
+author: 'dytsou'
+
+branding:
+  icon: 'book-open'
+  color: 'blue'
 
 inputs:
   openapi-path:
-    description: Path to openapi.json
+    description: 'Path to openapi.json'
     required: true
   out:
-    description: Site root output directory
+    description: 'Site root output directory'
     required: true
   title:
-    description: HTML title for the Swagger UI page
+    description: 'HTML title for the Swagger UI page'
     required: false
-    default: API docs
+    default: 'API docs'
 
 runs:
   using: composite
@@ -28,7 +32,3 @@ runs:
           --openapi "${{ inputs.openapi-path }}" \
           --out "${{ inputs.out }}" \
           --title "${{ inputs.title }}"
-
-branding:
-  icon: book-open
-  color: blue

@@ -1,41 +1,47 @@
-name: Assemble API docs Pages site
-description: Build main /docs/ plus open same-repo PR previews from per-ref OpenAPI exports
+name: 'Assemble API docs Pages site'
+description: >-
+  Build main /docs/ plus open same-repo PR previews from per-ref OpenAPI exports
+author: 'dytsou'
+
+branding:
+  icon: 'layers'
+  color: 'blue'
 
 inputs:
   out:
-    description: Output directory for the Pages site
+    description: 'Output directory for the Pages site'
     required: true
   repo:
-    description: GitHub repository in owner/name form
+    description: 'GitHub repository in owner/name form'
     required: true
   export-command:
-    description: >
+    description: >-
       Shell command that writes openapi-path for the current tree.
       Runs with cwd = tree/working-directory. Env API_DOCS_TREE_ROOT and
       API_DOCS_WORKSPACE are set.
     required: true
   openapi-path:
-    description: OpenAPI file path relative to the tree root
+    description: 'OpenAPI file path relative to the tree root'
     required: false
-    default: openapi.json
+    default: 'openapi.json'
   working-directory:
-    description: Directory (relative to tree root) where export-command runs
+    description: 'Directory (relative to tree root) where export-command runs'
     required: false
-    default: "."
+    default: '.'
   default-ref:
-    description: Git ref used for the main docs tree
+    description: 'Git ref used for the main docs tree'
     required: false
-    default: origin/main
+    default: 'origin/main'
   omit-pr:
-    description: PR number to omit (e.g. when the PR just closed)
+    description: 'PR number to omit (e.g. when the PR just closed)'
     required: false
-    default: ""
+    default: ''
   title:
-    description: HTML title for Swagger UI
+    description: 'HTML title for Swagger UI'
     required: false
-    default: API docs
+    default: 'API docs'
   token:
-    description: Token for listing open PRs via gh
+    description: 'Token for listing open PRs via gh'
     required: false
     default: ${{ github.token }}
 
