@@ -9,13 +9,14 @@
 # Usage:
 #   assemble.sh --out DIR --repo owner/name --export-command CMD
 #               [--openapi-path PATH] [--working-directory DIR]
-#               [--default-ref REF] [--omit-pr N] [--title TITLE]
-#               [--renderer swagger|redocly|both]
+#               [--default-ref REF] [--omit-pr N] [--require-pr N]
+#               [--title TITLE] [--renderer swagger|redocly|both]
 set -euo pipefail
 
 out=""
 default_ref="origin/main"
 omit_pr=""
+require_pr=""
 repo="${GITHUB_REPOSITORY:-}"
 export_command=""
 openapi_path="openapi.json"
@@ -33,6 +34,7 @@ while [[ $# -gt 0 ]]; do
     --out) out="${2:-}"; shift 2 ;;
     --default-ref) default_ref="${2:-}"; shift 2 ;;
     --omit-pr) omit_pr="${2:-}"; shift 2 ;;
+    --require-pr) require_pr="${2:-}"; shift 2 ;;
     --repo) repo="${2:-}"; shift 2 ;;
     --export-command) export_command="${2:-}"; shift 2 ;;
     --openapi-path) openapi_path="${2:-}"; shift 2 ;;
@@ -91,6 +93,10 @@ cleanup_main
 trap - EXIT
 
 if ! command -v gh >/dev/null 2>&1; then
+  if [[ -n "$require_pr" ]]; then
+    echo "error: gh not found; cannot build required PR #$require_pr preview" >&2
+    exit 1
+  fi
   echo "warning: gh not found; skipping PR previews" >&2
   echo "assembled site at $out"
   exit 0
@@ -119,6 +125,10 @@ for row in "${pr_rows[@]+"${pr_rows[@]}"}"; do
     echo "warning: fetch failed for PR #$number" >&2
     cleanup_pr
     trap - EXIT
+    if [[ -n "$require_pr" && "$number" == "$require_pr" ]]; then
+      echo "error: required PR #$require_pr fetch failed" >&2
+      exit 1
+    fi
     continue
   fi
   git -C "$root" worktree add --force --detach "$pr_tmp" "$oid"
@@ -126,9 +136,21 @@ for row in "${pr_rows[@]+"${pr_rows[@]}"}"; do
   if ! build_from_tree "$pr_tmp" "$pr_out"; then
     echo "warning: build failed for PR #$number" >&2
     rm -rf "$pr_out"
+    cleanup_pr
+    trap - EXIT
+    if [[ -n "$require_pr" && "$number" == "$require_pr" ]]; then
+      echo "error: required PR #$require_pr preview build failed" >&2
+      exit 1
+    fi
+    continue
   fi
   cleanup_pr
   trap - EXIT
 done
+
+if [[ -n "$require_pr" && ! -d "$out/pr-preview/pr-${require_pr}" ]]; then
+  echo "error: required PR #$require_pr preview missing under $out/pr-preview/" >&2
+  exit 1
+fi
 
 echo "assembled site at $out"

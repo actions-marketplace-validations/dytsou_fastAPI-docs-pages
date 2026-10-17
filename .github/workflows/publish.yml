@@ -75,6 +75,9 @@ jobs:
           git fetch --no-tags origin
           "${{ github.event.repository.default_branch }}:refs/remotes/origin/${{ github.event.repository.default_branch }}"
 
+      - name: Setup uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+
       - name: Setup (caller)
         if: inputs.setup-command != ''
         run: bash -euo pipefail -c "${{ inputs.setup-command }}"
@@ -89,6 +92,8 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
           default-ref: origin/${{ github.event.repository.default_branch }}
           omit-pr: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.number || '' }}
+          # Fail closed on the triggering PR preview so CI stays red and upsert does not advertise 404s.
+          require-pr: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.number || '' }}
           title: ${{ inputs.title }}
           renderer: ${{ inputs.renderer }}
 

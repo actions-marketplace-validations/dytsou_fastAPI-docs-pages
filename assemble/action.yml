@@ -36,6 +36,12 @@ inputs:
     description: 'PR number to omit (e.g. when the PR just closed)'
     required: false
     default: ''
+  require-pr:
+    description: >-
+      PR number whose preview must succeed. Assemble fails (no deploy / no
+      PR-body upsert) when that preview is missing or failed to build.
+    required: false
+    default: ''
   title:
     description: 'HTML title for the docs page'
     required: false
@@ -79,5 +85,8 @@ runs:
         )
         if [[ -n "${{ inputs.omit-pr }}" ]]; then
           args+=(--omit-pr "${{ inputs.omit-pr }}")
+        fi
+        if [[ -n "${{ inputs.require-pr }}" ]]; then
+          args+=(--require-pr "${{ inputs.require-pr }}")
         fi
         "${{ github.action_path }}/assemble.sh" "${args[@]}"
