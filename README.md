@@ -204,7 +204,7 @@ If something is not working:
 
 ## Contributing
 
-Contributions welcome — star the repo, [open issues](https://github.com/dytsou/fastAPI-docs-pages/issues), or send PRs.
+Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and our [Code of Conduct](CODE_OF_CONDUCT.md). Star the repo, [open issues](https://github.com/dytsou/fastAPI-docs-pages/issues), or send PRs.
 
 ## Important Notes
 

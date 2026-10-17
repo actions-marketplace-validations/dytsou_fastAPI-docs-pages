@@ -204,7 +204,7 @@ bash tests/smoke.sh
 
 ## 貢獻
 
-歡迎 star、[開 issue](https://github.com/dytsou/fastAPI-docs-pages/issues) 或送 PR。
+歡迎貢獻 — 請見 [CONTRIBUTING.md](CONTRIBUTING.md) 與 [Code of Conduct](CODE_OF_CONDUCT.md)。也歡迎 star、[開 issue](https://github.com/dytsou/fastAPI-docs-pages/issues) 或送 PR。
 
 ## 重要說明
 
