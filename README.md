@@ -1,6 +1,6 @@
 # FastAPI Docs Pages
 
-Publish a static Swagger UI (`/docs/`) to GitHub Pages for `main` and each same-repo PR — and append preview links to the PR description.
+Publish static API docs (Swagger UI and/or Redocly) to GitHub Pages for `main` and each same-repo PR — and append preview links to the PR description.
 
 [![GitHub release](https://img.shields.io/github/v/release/dytsou/fastAPI-docs-pages)](https://github.com/dytsou/fastAPI-docs-pages/releases)
 [![CI](https://github.com/dytsou/fastAPI-docs-pages/actions/workflows/ci.yml/badge.svg)](https://github.com/dytsou/fastAPI-docs-pages/actions/workflows/ci.yml)
@@ -12,6 +12,7 @@ Publish a static Swagger UI (`/docs/`) to GitHub Pages for `main` and each same-
 
 - [Quick Start](#quick-start)
 - [URLs](#urls)
+- [Renderers](#renderers)
 - [Workflow inputs](#workflow-inputs)
 - [Export contract](#export-contract)
 - [Composite actions](#composite-actions)
@@ -84,6 +85,7 @@ with:
       python scripts/export_openapi.py -o "$API_DOCS_TREE_ROOT/backend/openapi.json"
   openapi-path: backend/openapi.json
   title: SocratesBot API
+  renderer: both
 ```
 
 ## URLs
@@ -91,11 +93,33 @@ with:
 
 | Surface | Path |
 | ------- | ---- |
-| Main | `https://<owner>.github.io/<repo>/docs/` |
+| Main (default docs) | `https://<owner>.github.io/<repo>/docs/` |
+| Main (Redocly, `renderer: both`) | `https://<owner>.github.io/<repo>/redoc/` |
 | Same-repo PR | `https://<owner>.github.io/<repo>/pr-preview/pr-<n>/docs/` |
 
 
 After deploy, same-repo PRs get these links appended at the **end** of the PR body (CI-owned markers; no template stubs required).
+
+## Renderers
+
+Set `renderer` on the reusable workflow (or `build-site` / `assemble`):
+
+
+| Value | Output |
+| ----- | ------ |
+| `swagger` (default) | Swagger UI at `/docs/` |
+| `redocly` | Redocly HTML at `/docs/` |
+| `both` | Swagger UI at `/docs/` and Redocly at `/redoc/` |
+
+Redocly builds use a pinned `@redocly/cli` via `npx` (Node.js is set up automatically when needed).
+
+### Example (Redocly only)
+
+```yaml
+with:
+  export-command: ./scripts/export-openapi.sh
+  renderer: redocly
+```
 
 ## Workflow inputs
 
@@ -108,7 +132,8 @@ Reusable workflow: `dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1`
 | `openapi-path` | No | `openapi.json` | OpenAPI file path relative to each tree root |
 | `working-directory` | No | `.` | Directory (relative to tree root) where `export-command` runs |
 | `setup-command` | No | _(empty)_ | One-time setup in the primary checkout (e.g. `uv sync`) |
-| `title` | No | `API docs` | HTML title for Swagger UI |
+| `title` | No | `API docs` | HTML title for the docs page |
+| `renderer` | No | `swagger` | `swagger`, `redocly`, or `both` |
 | `pages-out` | No | `_site` | Directory uploaded as the Pages artifact |
 
 ## Export contract

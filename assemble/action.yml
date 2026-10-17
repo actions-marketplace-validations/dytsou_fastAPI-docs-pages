@@ -37,9 +37,13 @@ inputs:
     required: false
     default: ''
   title:
-    description: 'HTML title for Swagger UI'
+    description: 'HTML title for the docs page'
     required: false
     default: 'API docs'
+  renderer:
+    description: 'Docs renderer: swagger, redocly, or both'
+    required: false
+    default: 'swagger'
   token:
     description: 'Token for listing open PRs via gh'
     required: false
@@ -48,6 +52,12 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Setup Node.js
+      if: inputs.renderer == 'redocly' || inputs.renderer == 'both'
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: '22'
+
     - name: Assemble site
       shell: bash
       env:
@@ -63,6 +73,7 @@ runs:
           --working-directory "${{ inputs.working-directory }}"
           --default-ref "${{ inputs.default-ref }}"
           --title "${{ inputs.title }}"
+          --renderer "${{ inputs.renderer }}"
         )
         if [[ -n "${{ inputs.omit-pr }}" ]]; then
           args+=(--omit-pr "${{ inputs.omit-pr }}")

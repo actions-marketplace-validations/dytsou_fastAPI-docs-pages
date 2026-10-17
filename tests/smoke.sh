@@ -25,18 +25,33 @@ out2="$("$root/upsert-pr-body/upsert_body.sh" \
 grep -q 'pr-2' <<<"$out2"
 [[ "$(grep -c 'api-docs-preview:start' <<<"$out2")" -eq 1 ]]
 
-# --- build-site ---
+# --- build-site (swagger) ---
 spec="$tmpdir/openapi.json"
 cat >"$spec" <<'EOF'
 {"openapi":"3.0.3","info":{"title":"Smoke","version":"0.0.1"},"paths":{}}
 EOF
-site="$tmpdir/site"
-"$root/build-site/build.sh" --openapi "$spec" --out "$site" --title "Smoke API"
+site="$tmpdir/site-swagger"
+"$root/build-site/build.sh" --openapi "$spec" --out "$site" --title "Smoke API" --renderer swagger
 test -f "$site/docs/index.html"
 test -f "$site/docs/openapi.json"
 test -f "$site/docs/swagger-ui-bundle.js"
 test -f "$site/.nojekyll"
 grep -q 'supportedSubmitMethods: \[\]' "$site/docs/index.html"
 grep -q './openapi.json' "$site/docs/index.html"
+
+# --- build-site (redocly) ---
+site_redoc="$tmpdir/site-redocly"
+"$root/build-site/build.sh" --openapi "$spec" --out "$site_redoc" --title "Smoke API" --renderer redocly
+test -f "$site_redoc/docs/index.html"
+test -f "$site_redoc/docs/openapi.json"
+test ! -e "$site_redoc/docs/swagger-ui-bundle.js"
+grep -qiE 'redoc|rebilly' "$site_redoc/docs/index.html"
+
+# --- build-site (both) ---
+site_both="$tmpdir/site-both"
+"$root/build-site/build.sh" --openapi "$spec" --out "$site_both" --title "Smoke API" --renderer both
+test -f "$site_both/docs/swagger-ui-bundle.js"
+test -f "$site_both/redoc/index.html"
+grep -qiE 'redoc|rebilly' "$site_both/redoc/index.html"
 
 echo "smoke ok"

@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
-# Build a static Swagger UI site from an OpenAPI document.
+# Build a static API docs site from an OpenAPI document.
 # Usage:
-#   build.sh --openapi FILE --out DIR [--title TITLE]
+#   build.sh --openapi FILE --out DIR [--title TITLE] [--renderer swagger|redocly|both]
 set -euo pipefail
 
-# Pin swagger-ui-dist; bump intentionally when upgrading the UI.
+# Pin versions; bump intentionally when upgrading.
 SWAGGER_UI_VERSION="${SWAGGER_UI_VERSION:-5.18.3}"
+REDOCLY_CLI_VERSION="${REDOCLY_CLI_VERSION:-1.34.5}"
 CDN_BASE="https://cdn.jsdelivr.net/npm/swagger-ui-dist@${SWAGGER_UI_VERSION}"
 
 openapi=""
 out=""
 title="API docs"
+renderer="swagger"
 
 usage() {
-  echo "Usage: $0 --openapi FILE --out DIR [--title TITLE]" >&2
+  echo "Usage: $0 --openapi FILE --out DIR [--title TITLE] [--renderer swagger|redocly|both]" >&2
   exit 2
 }
 
@@ -22,25 +24,40 @@ while [[ $# -gt 0 ]]; do
     --openapi) openapi="${2:-}"; shift 2 ;;
     --out) out="${2:-}"; shift 2 ;;
     --title) title="${2:-}"; shift 2 ;;
+    --renderer) renderer="${2:-}"; shift 2 ;;
     -h|--help) usage ;;
     *) echo "unknown arg: $1" >&2; usage ;;
   esac
 done
 
 [[ -n "$openapi" && -n "$out" && -f "$openapi" ]] || usage
+case "$renderer" in
+  swagger|redocly|both) ;;
+  *) echo "error: --renderer must be swagger, redocly, or both (got: $renderer)" >&2; exit 2 ;;
+esac
 
 out="$(mkdir -p "$out" && cd "$out" && pwd -P)"
-docs_dir="$out/docs"
-mkdir -p "$docs_dir"
+openapi_abs="$(cd "$(dirname "$openapi")" && pwd -P)/$(basename "$openapi")"
 
-cp "$openapi" "$docs_dir/openapi.json"
+write_root_files() {
+  : >"$out/.nojekyll"
+  cat >"$out/index.html" <<'EOF'
+<!DOCTYPE html><meta http-equiv="refresh" content="0; url=./docs/">
+<a href="./docs/">API docs</a>
+EOF
+}
 
-for name in swagger-ui-bundle.js swagger-ui.css favicon-32x32.png; do
-  curl -fsSL "${CDN_BASE}/${name}" -o "${docs_dir}/${name}"
-done
+build_swagger() {
+  local docs_dir="$1"
+  mkdir -p "$docs_dir"
+  cp "$openapi_abs" "$docs_dir/openapi.json"
 
-# Relative URLs; Try it out disabled (no live API from Pages).
-cat >"$docs_dir/index.html" <<EOF
+  for name in swagger-ui-bundle.js swagger-ui.css favicon-32x32.png; do
+    curl -fsSL "${CDN_BASE}/${name}" -o "${docs_dir}/${name}"
+  done
+
+  # Relative URLs; Try it out disabled (no live API from Pages).
+  cat >"$docs_dir/index.html" <<EOF
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,11 +90,37 @@ cat >"$docs_dir/index.html" <<EOF
 </body>
 </html>
 EOF
+}
 
-: >"$out/.nojekyll"
-cat >"$out/index.html" <<'EOF'
-<!DOCTYPE html><meta http-equiv="refresh" content="0; url=./docs/">
-<a href="./docs/">API docs</a>
-EOF
+build_redocly() {
+  local docs_dir="$1"
+  mkdir -p "$docs_dir"
+  cp "$openapi_abs" "$docs_dir/openapi.json"
 
-echo "built site at $out"
+  if ! command -v npx >/dev/null 2>&1; then
+    echo "error: npx is required for --renderer redocly (install Node.js)" >&2
+    return 1
+  fi
+
+  # Self-contained HTML via Redocly CLI (pinned).
+  npx --yes "@redocly/cli@${REDOCLY_CLI_VERSION}" build-docs "$openapi_abs" \
+    --output "$docs_dir/index.html" \
+    --title "$title" \
+    --disableGoogleFont
+}
+
+case "$renderer" in
+  swagger)
+    build_swagger "$out/docs"
+    ;;
+  redocly)
+    build_redocly "$out/docs"
+    ;;
+  both)
+    build_swagger "$out/docs"
+    build_redocly "$out/redoc"
+    ;;
+esac
+
+write_root_files
+echo "built site at $out (renderer=$renderer)"

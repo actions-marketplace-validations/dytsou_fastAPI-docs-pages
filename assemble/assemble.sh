@@ -10,6 +10,7 @@
 #   assemble.sh --out DIR --repo owner/name --export-command CMD
 #               [--openapi-path PATH] [--working-directory DIR]
 #               [--default-ref REF] [--omit-pr N] [--title TITLE]
+#               [--renderer swagger|redocly|both]
 set -euo pipefail
 
 out=""
@@ -20,6 +21,7 @@ export_command=""
 openapi_path="openapi.json"
 working_directory="."
 title="API docs"
+renderer="swagger"
 
 usage() {
   echo "Usage: $0 --out DIR --repo owner/name --export-command CMD [options]" >&2
@@ -36,6 +38,7 @@ while [[ $# -gt 0 ]]; do
     --openapi-path) openapi_path="${2:-}"; shift 2 ;;
     --working-directory) working_directory="${2:-}"; shift 2 ;;
     --title) title="${2:-}"; shift 2 ;;
+    --renderer) renderer="${2:-}"; shift 2 ;;
     -h|--help) usage ;;
     *) echo "unknown arg: $1" >&2; usage ;;
   esac
@@ -75,7 +78,7 @@ build_from_tree() {
     echo "error: export-command did not write $openapi_abs" >&2
     return 1
   fi
-  "$build_sh" --openapi "$openapi_abs" --out "$site_out" --title "$title"
+  "$build_sh" --openapi "$openapi_abs" --out "$site_out" --title "$title" --renderer "$renderer"
 }
 
 echo "Building main site from $default_ref ..."

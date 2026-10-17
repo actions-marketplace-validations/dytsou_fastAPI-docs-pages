@@ -1,6 +1,6 @@
 # FastAPI Docs Pages
 
-把靜態 Swagger UI（`/docs/`）發到 GitHub Pages：涵蓋 `main` 與每個同 repo PR，並把預覽連結加到 PR 描述結尾。
+把靜態 API 文件（Swagger UI 與／或 Redocly）發到 GitHub Pages：涵蓋 `main` 與每個同 repo PR，並把預覽連結加到 PR 描述結尾。
 
 [![GitHub release](https://img.shields.io/github/v/release/dytsou/fastAPI-docs-pages)](https://github.com/dytsou/fastAPI-docs-pages/releases)
 [![CI](https://github.com/dytsou/fastAPI-docs-pages/actions/workflows/ci.yml/badge.svg)](https://github.com/dytsou/fastAPI-docs-pages/actions/workflows/ci.yml)
@@ -12,6 +12,7 @@
 
 - [快速開始](#快速開始)
 - [網址](#網址)
+- [Renderers](#renderers)
 - [Workflow 輸入](#workflow-輸入)
 - [匯出契約](#匯出契約)
 - [Composite actions](#composite-actions)
@@ -84,6 +85,7 @@ with:
       python scripts/export_openapi.py -o "$API_DOCS_TREE_ROOT/backend/openapi.json"
   openapi-path: backend/openapi.json
   title: SocratesBot API
+  renderer: both
 ```
 
 ## 網址
@@ -91,11 +93,33 @@ with:
 
 | 用途 | 路徑 |
 | ---- | ---- |
-| Main | `https://<owner>.github.io/<repo>/docs/` |
+| Main（預設 docs） | `https://<owner>.github.io/<repo>/docs/` |
+| Main（Redocly，`renderer: both`） | `https://<owner>.github.io/<repo>/redoc/` |
 | 同 repo PR | `https://<owner>.github.io/<repo>/pr-preview/pr-<n>/docs/` |
 
 
 部署後，同 repo PR 會在描述**結尾**追加連結（由 CI 管理 marker；不必在 PR template 預留）。
+
+## Renderers
+
+在 reusable workflow（或 `build-site` / `assemble`）設定 `renderer`：
+
+
+| 值 | 輸出 |
+| -- | ---- |
+| `swagger`（預設） | `/docs/` 為 Swagger UI |
+| `redocly` | `/docs/` 為 Redocly HTML |
+| `both` | `/docs/` 為 Swagger UI，`/redoc/` 為 Redocly |
+
+Redocly 建置使用 pinned 的 `@redocly/cli`（經 `npx`；需要時會自動 setup Node.js）。
+
+### 範例（只建 Redocly）
+
+```yaml
+with:
+  export-command: ./scripts/export-openapi.sh
+  renderer: redocly
+```
 
 ## Workflow 輸入
 
@@ -108,7 +132,8 @@ Reusable workflow：`dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1`
 | `openapi-path` | 否 | `openapi.json` | 相對於各 tree 根目錄的 OpenAPI 路徑 |
 | `working-directory` | 否 | `.` | 執行 `export-command` 的目錄（相對 tree 根） |
 | `setup-command` | 否 | _(空)_ | 在 primary checkout 做一次的準備（如 `uv sync`） |
-| `title` | 否 | `API docs` | Swagger UI 的 HTML title |
+| `title` | 否 | `API docs` | 文件頁 HTML title |
+| `renderer` | 否 | `swagger` | `swagger`、`redocly` 或 `both` |
 | `pages-out` | 否 | `_site` | 上傳為 Pages artifact 的目錄 |
 
 ## 匯出契約

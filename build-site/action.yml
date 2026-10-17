@@ -1,5 +1,5 @@
 name: 'Build OpenAPI static site'
-description: 'Build a static Swagger UI site from an OpenAPI JSON file'
+description: 'Build a static API docs site (Swagger UI and/or Redocly) from OpenAPI JSON'
 author: 'dytsou'
 
 branding:
@@ -14,13 +14,23 @@ inputs:
     description: 'Site root output directory'
     required: true
   title:
-    description: 'HTML title for the Swagger UI page'
+    description: 'HTML title for the docs page'
     required: false
     default: 'API docs'
+  renderer:
+    description: 'Docs renderer: swagger, redocly, or both'
+    required: false
+    default: 'swagger'
 
 runs:
   using: composite
   steps:
+    - name: Setup Node.js
+      if: inputs.renderer == 'redocly' || inputs.renderer == 'both'
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: '22'
+
     - name: Build site
       shell: bash
       run: |
@@ -28,4 +38,5 @@ runs:
         "${{ github.action_path }}/build.sh" \
           --openapi "${{ inputs.openapi-path }}" \
           --out "${{ inputs.out }}" \
-          --title "${{ inputs.title }}"
+          --title "${{ inputs.title }}" \
+          --renderer "${{ inputs.renderer }}"

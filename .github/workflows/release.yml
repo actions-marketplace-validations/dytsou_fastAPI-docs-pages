@@ -66,7 +66,7 @@ jobs:
           body: |
             ## FastAPI Docs Pages ${{ steps.tag.outputs.tag }}
 
-            Publish a static Swagger UI (`/docs/`) to **GitHub Pages** for `main` and each same-repo PR, and append preview links to the PR description.
+            Publish static API docs (Swagger UI and/or Redocly) to **GitHub Pages** for `main` and each same-repo PR, and append preview links to the PR description.
 
             Consumers only export OpenAPI JSON — this action never imports your app.
 
@@ -101,9 +101,18 @@ jobs:
                       python scripts/export_openapi.py -o "$API_DOCS_TREE_ROOT/backend/openapi.json"
                   openapi-path: backend/openapi.json
                   title: My API
+                  renderer: both
             ```
 
             Pin the major tag (`@${{ steps.tag.outputs.major }}`) for floating updates within this major, or pin `@${{ steps.tag.outputs.tag }}` for a fixed release.
+
+            ### Renderers
+
+            | Value | Output |
+            | ----- | ------ |
+            | `swagger` (default) | Swagger UI at `/docs/` |
+            | `redocly` | Redocly HTML at `/docs/` |
+            | `both` | Swagger UI at `/docs/` + Redocly at `/redoc/` |
 
             ### Composite actions
 
@@ -119,6 +128,7 @@ jobs:
             | Surface | Path |
             | ------- | ---- |
             | Main | `https://<owner>.github.io/<repo>/docs/` |
+            | Redocly (`renderer: both`) | `https://<owner>.github.io/<repo>/redoc/` |
             | Same-repo PR | `https://<owner>.github.io/<repo>/pr-preview/pr-<n>/docs/` |
 
             ### Notes
