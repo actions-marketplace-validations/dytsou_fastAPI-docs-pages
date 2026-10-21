@@ -152,3 +152,39 @@ jobs:
           repo: ${{ github.event.repository.name }}
           pr-number: ${{ github.event.pull_request.number }}
           removed: ${{ github.event.action == 'closed' }}
+
+  upsert-deployments:
+    name: Upsert deployments history
+    needs: deploy
+    if: >
+      needs.deploy.result == 'success' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      deployments: write
+      contents: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+
+      - name: Upsert deployments for this ref
+        uses: dytsou/fastAPI-docs-pages/upsert-deployments@c7cb9606fa5bfb7485ed6919390a95d8aeb64838 # upsert-deployments (pre-release)
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          ref: >-
+            ${{
+              github.event_name == 'pull_request'
+              && github.event.pull_request.head.ref
+              || github.ref_name
+            }}
+          mode: >-
+            ${{
+              github.event_name == 'pull_request' && github.event.action == 'closed'
+              && 'purge'
+              || 'replace'
+            }}
