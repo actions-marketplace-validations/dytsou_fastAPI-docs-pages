@@ -172,7 +172,7 @@ jobs:
           egress-policy: audit
 
       - name: Upsert deployments for this ref
-        uses: dytsou/fastAPI-docs-pages/upsert-deployments@c7cb9606fa5bfb7485ed6919390a95d8aeb64838 # upsert-deployments (pre-release)
+        uses: dytsou/fastAPI-docs-pages/upsert-deployments@v1
         with:
           owner: ${{ github.repository_owner }}
           repo: ${{ github.event.repository.name }}

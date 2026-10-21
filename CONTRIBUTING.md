@@ -40,7 +40,7 @@ Layout:
 | `assemble/` | Main + PR preview trees |
 | `upsert-pr-body/` | PR description link block |
 | `upsert-deployments/` | Prune GitHub Deployments history for a ref |
-| `.github/workflows/publish.yml` | Thin reusable workflow (build → deploy → PR body) |
+| `.github/workflows/publish.yml` | Thin reusable workflow (build → deploy → PR body + deployments prune) |
 | `.github/workflows/release.yml` | Semver tag → GitHub Release + major tag |
 
 ## Local development

@@ -70,10 +70,6 @@ got="$("$sel" --ref feat/demo --mode purge <"$fix")"
 got="$("$sel" --ref main --mode replace <"$fix")"
 [[ "$got" == $'60' ]]
 
-# other-branch untouched by main replace
-got="$("$sel" --ref main --mode replace <"$fix")"
-grep -qv '^50$' <<<"$got" || { echo "must not delete other-branch"; exit 1; }
-
 # empty / no match
 got="$("$sel" --ref nonexistent --mode purge <"$fix")"
 [[ -z "$got" ]]

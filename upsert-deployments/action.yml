@@ -37,11 +37,16 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
+        OWNER: ${{ inputs.owner }}
+        REPO: ${{ inputs.repo }}
+        REF: ${{ inputs.ref }}
+        MODE: ${{ inputs.mode }}
+        ENVIRONMENT: ${{ inputs.environment }}
       run: |
         set -euo pipefail
         "${{ github.action_path }}/upsert.sh" \
-          --owner "${{ inputs.owner }}" \
-          --repo "${{ inputs.repo }}" \
-          --ref "${{ inputs.ref }}" \
-          --mode "${{ inputs.mode }}" \
-          --environment "${{ inputs.environment }}"
+          --owner "$OWNER" \
+          --repo "$REPO" \
+          --ref "$REF" \
+          --mode "$MODE" \
+          --environment "$ENVIRONMENT"

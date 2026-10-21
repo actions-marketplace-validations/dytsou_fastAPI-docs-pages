@@ -57,7 +57,10 @@ if ! jq -s 'add // []' "$list_file" >"$tmpdir/all.json" 2>/dev/null; then
   cp "$list_file" "$tmpdir/all.json"
 fi
 
-ids="$("$script_dir/select_ids.sh" --ref "$ref" --mode "$mode" <"$tmpdir/all.json" || true)"
+if ! ids="$("$script_dir/select_ids.sh" --ref "$ref" --mode "$mode" <"$tmpdir/all.json")"; then
+  echo "warning: select_ids failed; skipping upsert" >&2
+  exit 0
+fi
 if [[ -z "${ids}" ]]; then
   echo "upsert-deployments: nothing to delete for ref=$ref mode=$mode"
   exit 0
