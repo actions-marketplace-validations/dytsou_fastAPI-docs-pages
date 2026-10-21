@@ -1,0 +1,47 @@
+name: 'Upsert GitHub Pages deployments history'
+description: >-
+  Prune github-pages Deployments records for a ref (replace keeps newest;
+  purge deletes all). Soft-fails on API errors.
+author: 'dytsou'
+
+branding:
+  icon: 'trash'
+  color: 'blue'
+
+inputs:
+  owner:
+    description: 'Repository owner'
+    required: true
+  repo:
+    description: 'Repository name (without owner)'
+    required: true
+  ref:
+    description: 'Git ref / branch whose deployment records to upsert'
+    required: true
+  mode:
+    description: 'replace (keep newest) or purge (delete all for ref)'
+    required: true
+  environment:
+    description: 'Deployments environment name'
+    required: false
+    default: 'github-pages'
+  token:
+    description: 'Token with deployments write'
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Upsert deployments history
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        set -euo pipefail
+        "${{ github.action_path }}/upsert.sh" \
+          --owner "${{ inputs.owner }}" \
+          --repo "${{ inputs.repo }}" \
+          --ref "${{ inputs.ref }}" \
+          --mode "${{ inputs.mode }}" \
+          --environment "${{ inputs.environment }}"
