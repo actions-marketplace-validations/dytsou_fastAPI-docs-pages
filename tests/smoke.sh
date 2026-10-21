@@ -54,4 +54,24 @@ site_both="$tmpdir/site-both"
 [[ -f "$site_both/redoc/index.html" ]]
 grep -qiE 'redoc|rebilly' "$site_both/redoc/index.html"
 
+# --- upsert-deployments select_ids ---
+fix="$root/tests/fixtures/deployments-sample.json"
+sel="$root/upsert-deployments/select_ids.sh"
+
+# replace feat/demo: keep newest (100), delete 90 and 80
+got="$("$sel" --ref feat/demo --mode replace <"$fix")"
+[[ "$got" == $'90\n80' ]]
+
+# purge feat/demo: delete all three
+got="$("$sel" --ref feat/demo --mode purge <"$fix")"
+[[ "$got" == $'100\n90\n80' ]]
+
+# replace main: match short + refs/heads/main; keep 70, delete 60
+got="$("$sel" --ref main --mode replace <"$fix")"
+[[ "$got" == $'60' ]]
+
+# empty / no match
+got="$("$sel" --ref nonexistent --mode purge <"$fix")"
+[[ -z "$got" ]]
+
 echo "smoke ok"
