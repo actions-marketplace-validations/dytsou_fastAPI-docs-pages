@@ -167,6 +167,7 @@ Prefer the reusable workflow. Use these when you need a custom deploy pipeline:
 | `dytsou/fastAPI-docs-pages/build-site@v1` | One `openapi.json` → static site |
 | `dytsou/fastAPI-docs-pages/assemble@v1` | Main + PR previews |
 | `dytsou/fastAPI-docs-pages/upsert-pr-body@v1` | Append / update PR body links |
+| `dytsou/fastAPI-docs-pages/upsert-deployments@v1` | Prune Deployments history for a ref (`replace` / `purge`) |
 | `dytsou/fastAPI-docs-pages@v1` | Alias of `build-site` |
 
 ### Basic Usage (`build-site`)
@@ -186,6 +187,22 @@ Prefer the reusable workflow. Use these when you need a custom deploy pipeline:
 1. **Pages source** set to GitHub Actions on the consumer repository
 2. A command that can emit valid OpenAPI 3 JSON for any git ref you care about
 3. Workflow permissions: `contents: read`, `pages: write`, `id-token: write`, and `pull-requests: write` (for PR body links)
+
+### Deployments history
+
+After each successful Pages deploy, the reusable workflow calls
+`upsert-deployments` so the GitHub Deployments UI does not accumulate cards
+for the same ref:
+
+- **push / open PR sync:** `mode: replace` — keep the newest `github-pages`
+  deployment for that branch; delete older ones for the same ref
+- **PR closed:** `mode: purge` — delete all `github-pages` deployments for
+  that PR head branch
+
+Other refs (including open PRs) are left untouched. API failures are soft-failed
+so docs publish stays green. Job permission used: `deployments: write` (set
+inside `publish.yml`; callers using only the reusable workflow need no extra
+top-level deployments permission).
 
 ### Local smoke (this repository)
 

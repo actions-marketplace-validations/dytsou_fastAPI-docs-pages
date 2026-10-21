@@ -170,6 +170,7 @@ Reusable workflow：`dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1`
 | `dytsou/fastAPI-docs-pages/build-site@v1`     | 單一 `openapi.json` → 靜態站 |
 | `dytsou/fastAPI-docs-pages/assemble@v1`       | Main + PR 預覽            |
 | `dytsou/fastAPI-docs-pages/upsert-pr-body@v1` | 追加／更新 PR body 連結        |
+| `dytsou/fastAPI-docs-pages/upsert-deployments@v1` | 修剪某 ref 的 Deployments 紀錄（`replace` / `purge`） |
 | `dytsou/fastAPI-docs-pages@v1`                | `build-site` 別名         |
 
 
@@ -190,6 +191,19 @@ Reusable workflow：`dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1`
 1. 消費者 repo 的 Pages Source 設為 GitHub Actions
 2. 能對任意相關 git ref 產出合法 OpenAPI 3 JSON 的指令
 3. Workflow 權限：`contents: read`、`pages: write`、`id-token: write`，以及 `pull-requests: write`（PR body 連結）
+
+### Deployments 紀錄
+
+每次 Pages 部署成功後，reusable workflow 會呼叫
+`upsert-deployments`，避免 GitHub Deployments UI 對同一 ref 累積多張卡片：
+
+- **push／開啟中 PR 同步：** `mode: replace` — 保留該分支最新的 `github-pages`
+  deployment；刪除同一 ref 的較舊 deployment
+- **PR 關閉：** `mode: purge` — 刪除該 PR head 分支的所有 `github-pages` deployment
+
+其他 ref（含仍開啟的 PR）不受影響。API 失敗採 soft-fail，文件發佈仍會維持綠燈。
+Job 使用的權限：`deployments: write`（在 `publish.yml` 內設定；僅使用 reusable
+workflow 的 caller 無需在頂層額外設定 deployments 權限）。
 
 ### 本機 smoke（本 repo）
 
