@@ -1,7 +1,8 @@
 name: 'Upsert GitHub Pages deployments history'
 description: >-
   Prune github-pages Deployments records for a ref (replace keeps newest;
-  purge deletes all). Soft-fails on API errors.
+  purge deletes all). Soft-fails on API errors. Never deletes protect-ref
+  unless ref is that same branch.
 author: 'dytsou'
 
 branding:
@@ -25,6 +26,12 @@ inputs:
     description: 'Deployments environment name'
     required: false
     default: 'github-pages'
+  protect-ref:
+    description: >-
+      Branch that must not be deleted unless ref matches it (e.g. default
+      branch). Empty skips protection.
+    required: false
+    default: ''
   token:
     description: 'Token with deployments write'
     required: false
@@ -42,11 +49,17 @@ runs:
         REF: ${{ inputs.ref }}
         MODE: ${{ inputs.mode }}
         ENVIRONMENT: ${{ inputs.environment }}
+        PROTECT_REF: ${{ inputs.protect-ref }}
       run: |
         set -euo pipefail
-        "${{ github.action_path }}/upsert.sh" \
-          --owner "$OWNER" \
-          --repo "$REPO" \
-          --ref "$REF" \
-          --mode "$MODE" \
+        args=(
+          --owner "$OWNER"
+          --repo "$REPO"
+          --ref "$REF"
+          --mode "$MODE"
           --environment "$ENVIRONMENT"
+        )
+        if [[ -n "${PROTECT_REF}" ]]; then
+          args+=(--protect-ref "$PROTECT_REF")
+        fi
+        "${{ github.action_path }}/upsert.sh" "${args[@]}"

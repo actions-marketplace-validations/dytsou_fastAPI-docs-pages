@@ -70,6 +70,16 @@ got="$("$sel" --ref feat/demo --mode purge <"$fix")"
 got="$("$sel" --ref main --mode replace <"$fix")"
 [[ "$got" == $'60' ]]
 
+# protect main while purging a PR branch: never emit main ids
+got="$("$sel" --ref feat/demo --mode purge --protect-ref main <"$fix")"
+[[ "$got" == $'100\n90\n80' ]]
+got="$("$sel" --ref feat/demo --mode replace --protect-ref main <"$fix")"
+[[ "$got" == $'90\n80' ]]
+
+# protect-ref equals --ref: still allow replacing old main
+got="$("$sel" --ref main --mode replace --protect-ref main <"$fix")"
+[[ "$got" == $'60' ]]
+
 # empty / no match
 got="$("$sel" --ref nonexistent --mode purge <"$fix")"
 [[ -z "$got" ]]

@@ -2,7 +2,8 @@
 # List github-pages (or --environment) deployments and prune per --mode.
 # Soft-fail: API/per-id errors are logged; exit 0 unless bad args.
 # Usage:
-#   upsert.sh --owner O --repo R --ref REF --mode replace|purge [--environment github-pages]
+#   upsert.sh --owner O --repo R --ref REF --mode replace|purge
+#             [--environment github-pages] [--protect-ref REF ...]
 # Requires: gh, jq, GH_TOKEN (or gh auth)
 set -euo pipefail
 
@@ -11,9 +12,10 @@ repo=""
 ref=""
 mode=""
 environment="github-pages"
+protect_refs=()
 
 usage() {
-  echo "Usage: $0 --owner O --repo R --ref REF --mode replace|purge [--environment ENV]" >&2
+  echo "Usage: $0 --owner O --repo R --ref REF --mode replace|purge [--environment ENV] [--protect-ref REF ...]" >&2
   exit 2
 }
 
@@ -24,6 +26,7 @@ while [[ $# -gt 0 ]]; do
     --ref) ref="${2:-}"; shift 2 ;;
     --mode) mode="${2:-}"; shift 2 ;;
     --environment) environment="${2:-}"; shift 2 ;;
+    --protect-ref) protect_refs+=("${2:-}"); shift 2 ;;
     -h|--help) usage ;;
     *) echo "unknown arg: $1" >&2; usage ;;
   esac
@@ -57,7 +60,13 @@ if ! jq -s 'add // []' "$list_file" >"$tmpdir/all.json" 2>/dev/null; then
   cp "$list_file" "$tmpdir/all.json"
 fi
 
-if ! ids="$("$script_dir/select_ids.sh" --ref "$ref" --mode "$mode" <"$tmpdir/all.json")"; then
+select_args=(--ref "$ref" --mode "$mode")
+for p in "${protect_refs[@]+"${protect_refs[@]}"}"; do
+  [[ -n "$p" ]] || continue
+  select_args+=(--protect-ref "$p")
+done
+
+if ! ids="$("$script_dir/select_ids.sh" "${select_args[@]}" <"$tmpdir/all.json")"; then
   echo "warning: select_ids failed; skipping upsert" >&2
   exit 0
 fi
