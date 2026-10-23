@@ -194,19 +194,17 @@ Reusable workflow：`dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1`
 
 ### Deployments 紀錄
 
-Pages 部署成功後，reusable workflow 可能會呼叫
+每次 Pages 部署成功後，reusable workflow 會呼叫
 `upsert-deployments`，避免 GitHub Deployments UI 對同一 ref 累積多張卡片：
 
-- **push／`workflow_dispatch`：** `mode: replace` — 保留該分支最新的
-  `github-pages` deployment；刪除同一 ref 的較舊 deployment
-- **PR 開啟／同步：** 不做 upsert — **不**修剪 Deployments 歷史（也絕不會動到
-  default branch 的紀錄）
+- **push／`workflow_dispatch`／PR 開啟／同步：** `mode: replace` — 保留該分支
+  最新的 `github-pages` deployment；刪除同一 ref 的較舊 deployment
 - **PR 關閉：** `mode: purge` — 只刪該 PR head 分支的 `github-pages`
   deployment；default branch 以 `protect-ref` 保護
 
-PR 的 upsert 不會動到其他 ref（含仍開啟的 PR 與 `main`）。API 失敗採 soft-fail，
-文件發佈仍會維持綠燈。Job 使用的權限：`deployments: write`（在 `publish.yml`
-內設定；僅使用 reusable workflow 的 caller 無需在頂層額外設定 deployments 權限）。
+其他 ref（含仍開啟的 PR 與 `main`）不受影響。API 失敗採 soft-fail，文件發佈
+仍會維持綠燈。Job 使用的權限：`deployments: write`（在 `publish.yml` 內設定；
+僅使用 reusable workflow 的 caller 無需在頂層額外設定 deployments 權限）。
 
 ### 本機 smoke（本 repo）
 
