@@ -153,20 +153,15 @@ jobs:
           pr-number: ${{ github.event.pull_request.number }}
           removed: ${{ github.event.action == 'closed' }}
 
-  # replace only on push/dispatch; PR open/sync must not prune (esp. not main).
-  # PR closed: purge that head ref only, with default branch protected.
+  # replace on push/dispatch and PR open/sync (same head ref only).
+  # PR closed: purge that head ref; protect-ref keeps the default branch safe.
   upsert-deployments:
     name: Upsert deployments history
     needs: deploy
     if: >
       needs.deploy.result == 'success' &&
-      (
-        github.event_name == 'push' ||
-        github.event_name == 'workflow_dispatch' ||
-        (github.event_name == 'pull_request' &&
-         github.event.action == 'closed' &&
-         github.event.pull_request.head.repo.full_name == github.repository)
-      )
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
