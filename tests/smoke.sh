@@ -147,4 +147,27 @@ assert_file_eq "$boot/pr-preview/pr-1/docs/index.html" "pr1-v2"
 [[ ! -e "$merged3/pr-preview/pr-1" ]]
 assert_file_eq "$merged3/pr-preview/pr-2/docs/index.html" "pr2-v1"
 
+# --- assemble/select_pages_artifact.sh ---
+sel_art="$root/assemble/select_pages_artifact.sh"
+chmod +x "$sel_art"
+art_fix="$root/tests/fixtures/pages-artifacts-sample.json"
+got="$("$sel_art" <"$art_fix")"
+[[ "$got" == "10" ]]
+got="$("$sel_art" --exclude-run-id 100 <"$art_fix")"
+[[ "$got" == "9" ]]
+got="$("$sel_art" --name nonexistent <"$art_fix")"
+[[ -z "$got" ]]
+
+# --- assemble.sh mode validation ---
+assemble="$root/assemble/assemble.sh"
+chmod +x "$assemble"
+if "$assemble" --out "$tmpdir/bad-mode" --repo owner/name --export-command 'true' --mode nope 2>/dev/null; then
+  echo "error: assemble should reject bad --mode" >&2
+  exit 1
+fi
+if "$assemble" --out "$tmpdir/bad-pr" --repo owner/name --export-command 'true' --mode pr 2>/dev/null; then
+  echo "error: assemble --mode pr should require --pr" >&2
+  exit 1
+fi
+
 echo "smoke ok"
