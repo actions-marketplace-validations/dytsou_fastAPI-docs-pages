@@ -84,4 +84,67 @@ got="$("$sel" --ref main --mode replace --protect-ref main <"$fix")"
 got="$("$sel" --ref nonexistent --mode purge <"$fix")"
 [[ -z "$got" ]]
 
+# --- assemble/merge_site.sh ---
+merge="$root/assemble/merge_site.sh"
+chmod +x "$merge"
+assert_file_eq() {
+  local path="$1" want="$2"
+  [[ -f "$path" ]] || { echo "error: missing $path" >&2; exit 1; }
+  local got
+  got="$(cat "$path")"
+  [[ "$got" == "$want" ]] || {
+    echo "error: $path expected '$want' got '$got'" >&2
+    exit 1
+  }
+}
+
+base_site="$tmpdir/site-base"
+overlay_pr="$tmpdir/site-overlay-pr"
+overlay_main="$tmpdir/site-overlay-main"
+merged="$tmpdir/site-merged"
+merged2="$tmpdir/site-merged2"
+merged3="$tmpdir/site-merged3"
+
+mkdir -p "$base_site/docs" "$base_site/pr-preview/pr-1/docs" "$base_site/pr-preview/pr-2/docs"
+echo main-v1 >"$base_site/docs/index.html"
+echo pr1-v1 >"$base_site/pr-preview/pr-1/docs/index.html"
+echo pr2-v1 >"$base_site/pr-preview/pr-2/docs/index.html"
+: >"$base_site/.nojekyll"
+
+mkdir -p "$overlay_pr/pr-preview/pr-1/docs"
+echo pr1-v2 >"$overlay_pr/pr-preview/pr-1/docs/index.html"
+
+"$merge" --base "$base_site" --out "$merged" --overlay "$overlay_pr"
+assert_file_eq "$merged/pr-preview/pr-1/docs/index.html" "pr1-v2"
+assert_file_eq "$merged/pr-preview/pr-2/docs/index.html" "pr2-v1"
+assert_file_eq "$merged/docs/index.html" "main-v1"
+[[ -f "$merged/.nojekyll" ]]
+
+mkdir -p "$overlay_main/docs"
+echo main-v2 >"$overlay_main/docs/index.html"
+: >"$overlay_main/.nojekyll"
+# Same path for base and out (in-place style used by publish).
+"$merge" --base "$merged" --out "$merged" --overlay "$overlay_main"
+assert_file_eq "$merged/docs/index.html" "main-v2"
+assert_file_eq "$merged/pr-preview/pr-1/docs/index.html" "pr1-v2"
+assert_file_eq "$merged/pr-preview/pr-2/docs/index.html" "pr2-v1"
+
+"$merge" --base "$merged" --out "$merged2" --remove-pr 1
+[[ ! -e "$merged2/pr-preview/pr-1" ]]
+[[ -d "$merged2/pr-preview/pr-2" ]]
+assert_file_eq "$merged2/docs/index.html" "main-v2"
+
+empty_base="$tmpdir/empty-base"
+mkdir -p "$empty_base"
+boot="$tmpdir/site-boot"
+"$merge" --base "$empty_base" --out "$boot" --overlay "$overlay_pr"
+assert_file_eq "$boot/pr-preview/pr-1/docs/index.html" "pr1-v2"
+[[ ! -e "$boot/docs" ]]
+
+# In-place remove
+"$merge" --base "$merged" --out "$merged3" --overlay "$overlay_pr"
+"$merge" --base "$merged3" --out "$merged3" --remove-pr 1
+[[ ! -e "$merged3/pr-preview/pr-1" ]]
+assert_file_eq "$merged3/pr-preview/pr-2/docs/index.html" "pr2-v1"
+
 echo "smoke ok"
