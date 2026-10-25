@@ -40,10 +40,8 @@ on:
         required: false
         default: _site
 
-# One full-site deploy at a time (artifact replaces the whole Pages site).
-concurrency:
-  group: github-pages
-  cancel-in-progress: false
+# Serial deploy via turnstyle (waits). Do not use workflow concurrency —
+# GitHub cancels older pending runs in a concurrency group.
 
 permissions:
   contents: read
@@ -55,10 +53,13 @@ jobs:
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Wait (turnstyle) + export can stack under PR bursts; prefer waiting
+    # before build so the budget is not spent idle after a finished delta.
+    timeout-minutes: 90
     permissions:
       contents: read
       pull-requests: read
+      actions: read
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
@@ -82,8 +83,115 @@ jobs:
         if: inputs.setup-command != ''
         run: bash -euo pipefail -c "${{ inputs.setup-command }}"
 
-      - name: Assemble Pages site
-        uses: dytsou/fastAPI-docs-pages/assemble@v1
+      - name: Plan assemble mode
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          force_full=false
+          mode=main
+          pr=""
+          pr_oid=""
+          remove_pr=""
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            mode=full
+            force_full=true
+          elif [[ "$EVENT_NAME" == "pull_request" && "$EVENT_ACTION" == "closed" ]]; then
+            mode=remove-pr
+            remove_pr="$PR_NUMBER"
+            pr="$PR_NUMBER"
+          elif [[ "$EVENT_NAME" == "pull_request" ]]; then
+            mode=pr
+            pr="$PR_NUMBER"
+            pr_oid="$PR_SHA"
+          else
+            mode=main
+          fi
+          {
+            echo "mode=$mode"
+            echo "force_full=$force_full"
+            echo "pr=$pr"
+            echo "pr_oid=$pr_oid"
+            echo "remove_pr=$remove_pr"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Checkout fastAPI-docs-pages helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: dytsou/fastAPI-docs-pages
+          # Same commit as this reusable workflow (not the caller's SHA).
+          ref: ${{ github.workflow_sha }}
+          path: .api-docs-pages-src
+          sparse-checkout: |
+            assemble
+            build-site
+          sparse-checkout-cone-mode: true
+
+      # Wait on other runs of this caller workflow (no queue-name). A custom
+      # queue-name only matches runs whose title/name contains that substring,
+      # which typical callers omit — leaving the wait a no-op.
+      - name: Wait for Pages deploy queue
+        uses: softprops/turnstyle@3805450be63b8c80577dc253e8c17e9132036df4 # v3.3.3
+        with:
+          poll-interval-seconds: 20
+          same-branch-only: false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Fetch prior Pages artifact base
+        id: base
+        if: steps.plan.outputs.force_full != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          helpers=".api-docs-pages-src/assemble"
+          chmod +x "$helpers/fetch_pages_base.sh" "$helpers/select_pages_artifact.sh"
+          set +e
+          "$helpers/fetch_pages_base.sh" \
+            --repo "${{ github.repository }}" \
+            --out _base \
+            --exclude-run-id "${{ github.run_id }}"
+          rc=$?
+          set -e
+          if [[ "$rc" -eq 3 ]]; then
+            echo "has_base=false" >>"$GITHUB_OUTPUT"
+            exit 0
+          elif [[ "$rc" -ne 0 ]]; then
+            exit "$rc"
+          fi
+          echo "has_base=true" >>"$GITHUB_OUTPUT"
+
+      - name: Build site delta
+        if: >
+          steps.plan.outputs.force_full != 'true' &&
+          steps.base.outputs.has_base == 'true' &&
+          steps.plan.outputs.mode != 'remove-pr'
+        uses: dytsou/fastAPI-docs-pages/assemble@${{ github.workflow_sha }}
+        with:
+          out: _delta
+          repo: ${{ github.repository }}
+          export-command: ${{ inputs.export-command }}
+          openapi-path: ${{ inputs.openapi-path }}
+          working-directory: ${{ inputs.working-directory }}
+          default-ref: origin/${{ github.event.repository.default_branch }}
+          mode: ${{ steps.plan.outputs.mode }}
+          pr: ${{ steps.plan.outputs.pr }}
+          pr-oid: ${{ steps.plan.outputs.pr_oid }}
+          require-pr: ${{ steps.plan.outputs.mode == 'pr' && steps.plan.outputs.pr || '' }}
+          title: ${{ inputs.title }}
+          renderer: ${{ inputs.renderer }}
+
+      - name: Full assemble fallback
+        id: full
+        if: >
+          steps.plan.outputs.force_full == 'true' ||
+          steps.base.outputs.has_base != 'true'
+        uses: dytsou/fastAPI-docs-pages/assemble@${{ github.workflow_sha }}
         with:
           out: ${{ inputs.pages-out }}
           repo: ${{ github.repository }}
@@ -91,16 +199,36 @@ jobs:
           openapi-path: ${{ inputs.openapi-path }}
           working-directory: ${{ inputs.working-directory }}
           default-ref: origin/${{ github.event.repository.default_branch }}
-          omit-pr: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.number || '' }}
-          # Fail closed on the triggering PR preview so CI stays red and upsert does not advertise 404s.
-          require-pr: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.number || '' }}
+          mode: full
+          omit-pr: ${{ steps.plan.outputs.remove_pr }}
+          require-pr: ${{ steps.plan.outputs.mode == 'pr' && steps.plan.outputs.pr || '' }}
           title: ${{ inputs.title }}
           renderer: ${{ inputs.renderer }}
+
+      - name: Merge delta into base
+        if: >
+          steps.plan.outputs.force_full != 'true' &&
+          steps.base.outputs.has_base == 'true'
+        env:
+          MODE: ${{ steps.plan.outputs.mode }}
+          REMOVE_PR: ${{ steps.plan.outputs.remove_pr }}
+          PAGES_OUT: ${{ inputs.pages-out }}
+        run: |
+          set -euo pipefail
+          helpers=".api-docs-pages-src/assemble"
+          chmod +x "$helpers/merge_site.sh"
+          if [[ "$MODE" == "remove-pr" ]]; then
+            "$helpers/merge_site.sh" --base _base --out "$PAGES_OUT" --remove-pr "$REMOVE_PR"
+          else
+            "$helpers/merge_site.sh" --base _base --out "$PAGES_OUT" --overlay _delta
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: ${{ inputs.pages-out }}
+          # Default retention is 1 day; keep a merge base available longer.
+          retention-days: 7
 
   deploy:
     name: Deploy to GitHub Pages
