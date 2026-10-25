@@ -190,21 +190,20 @@ Prefer the reusable workflow. Use these when you need a custom deploy pipeline:
 
 ### Deployments history
 
-After a successful Pages deploy, the reusable workflow may call
+After each successful Pages deploy, the reusable workflow calls
 `upsert-deployments` so the GitHub Deployments UI does not accumulate cards
 for the same ref:
 
-- **push / `workflow_dispatch`:** `mode: replace` — keep the newest
-  `github-pages` deployment for that branch; delete older ones for the same ref
-- **PR open / sync:** no upsert — does **not** prune Deployments history
-  (and never touches the default branch’s records)
+- **push / `workflow_dispatch` / PR open / sync:** `mode: replace` — keep the
+  newest `github-pages` deployment for that branch; delete older ones for the
+  same ref
 - **PR closed:** `mode: purge` — delete all `github-pages` deployments for
   that PR head branch only; default branch is protected via `protect-ref`
 
-Other refs (including open PRs and `main`) are left untouched by PR upserts.
-API failures are soft-failed so docs publish stays green. Job permission used:
-`deployments: write` (set inside `publish.yml`; callers using only the reusable
-workflow need no extra top-level deployments permission).
+Other refs (including open PRs and `main`) are left untouched. API failures are
+soft-failed so docs publish stays green. Job permission used: `deployments: write`
+(set inside `publish.yml`; callers using only the reusable workflow need no
+extra top-level deployments permission).
 
 ### Local smoke (this repository)
 
