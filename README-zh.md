@@ -192,6 +192,19 @@ Reusable workflow：`dytsou/fastAPI-docs-pages/.github/workflows/publish.yml@v1`
 2. 能對任意相關 git ref 產出合法 OpenAPI 3 JSON 的指令
 3. Workflow 權限：`contents: read`、`pages: write`、`id-token: write`，以及 `pull-requests: write`（PR body 連結）
 
+### 增量發佈
+
+GitHub Pages 每次部署仍會整站覆蓋。此 workflow 會依事件**只重建需要的路徑**，在真正的佇列鎖下併回上一版站點（多個 PR 同時發佈時會等待，而不是被標成 **Cancelled**）：
+
+| 事件 | 更新範圍 |
+| ---- | -------- |
+| PR 開啟／同步／重開 | 僅該 PR 的 `pr-preview/pr-<n>/` |
+| push 到 default branch | 僅主站 docs（保留仍開啟的 PR 預覽） |
+| PR 關閉 | 刪除該 PR 預覽目錄 |
+| `workflow_dispatch` | 全量重建 main + 所有同 repo 開啟中的 PR 預覽 |
+
+若沒有可用的上一版 Pages artifact（首次部署或 artifact 過期），該次 run 會 fallback 成全量 assemble。併發發佈可能在佇列上多等一會兒，但應跑完變綠，而不是互相 cancel。
+
 ### Deployments 紀錄
 
 每次 Pages 部署成功後，reusable workflow 會呼叫
@@ -226,9 +239,11 @@ bash tests/smoke.sh
 | 現象                               | 可能原因                             |
 | -------------------------------- | -------------------------------- |
 | PR 上 build 被跳過                   | Fork／跨 repo PR（v1 不支援）           |
+| Publish job 等待很久                 | 部署佇列 — 另一次 Pages 發佈進行中（預期行為）   |
 | `export-command did not write …` | `openapi-path` 與實際寫入路徑不一致        |
 | Swagger 空白或壞掉                    | export 產出的 OpenAPI JSON 無效       |
 | PR body 沒變                       | 缺少 `pull-requests: write`，或內容已相同 |
+| 多 PR 後預覽不見                       | 用 `workflow_dispatch` 觸發全量重建      |
 
 
 ## 貢獻
