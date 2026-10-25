@@ -203,7 +203,7 @@ GitHub Pages 每次部署仍會整站覆蓋。此 workflow 會依事件**只重�
 | PR 關閉 | 刪除該 PR 預覽目錄 |
 | `workflow_dispatch` | 全量重建 main + 所有同 repo 開啟中的 PR 預覽 |
 
-若沒有可用的上一版 Pages artifact（首次部署或 artifact 過期），該次 run 會 fallback 成全量 assemble。併發發佈可能在佇列上多等一會兒，但應跑完變綠，而不是互相 cancel。
+若沒有可用的上一版 Pages artifact（首次部署或 artifact 過期），該次 run 會 fallback 成全量 assemble。同一 **caller workflow** 的併發發佈會跨分支排隊等待（`same-branch-only: false`），應跑完變綠而不是互相 cancel。建議每個 repo 只用一個 caller workflow，讓佇列涵蓋所有 PR 發佈。
 
 ### Deployments 紀錄
 

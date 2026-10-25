@@ -158,6 +158,39 @@ got="$("$sel_art" --exclude-run-id 100 <"$art_fix")"
 got="$("$sel_art" --name nonexistent <"$art_fix")"
 [[ -z "$got" ]]
 
+# --- assemble/fetch_pages_base.sh (upload-pages-artifact zip layout) ---
+fetch="$root/assemble/fetch_pages_base.sh"
+chmod +x "$fetch"
+mini="$tmpdir/mini-site"
+mkdir -p "$mini/docs" "$mini/pr-preview/pr-9/docs"
+echo main-base >"$mini/docs/index.html"
+echo pr9 >"$mini/pr-preview/pr-9/docs/index.html"
+: >"$mini/.nojekyll"
+tar_dir="$tmpdir/tar-wrap"
+mkdir -p "$tar_dir"
+tar -cf "$tar_dir/artifact.tar" -C "$mini" .
+zip_path="$tmpdir/pages-artifact.zip"
+(cd "$tar_dir" && zip -q "$zip_path" artifact.tar)
+fetched="$tmpdir/fetched-base"
+"$fetch" --from-zip "$zip_path" --out "$fetched"
+assert_file_eq "$fetched/docs/index.html" "main-base"
+assert_file_eq "$fetched/pr-preview/pr-9/docs/index.html" "pr9"
+[[ -f "$fetched/.nojekyll" ]]
+
+# Non-site zip -> exit 3
+bad_zip="$tmpdir/not-a-site.zip"
+echo junk >"$tmpdir/junk.txt"
+(cd "$tmpdir" && zip -q "$bad_zip" junk.txt)
+bad_out="$tmpdir/bad-fetch"
+set +e
+"$fetch" --from-zip "$bad_zip" --out "$bad_out"
+fetch_rc=$?
+set -e
+[[ "$fetch_rc" -eq 3 ]] || {
+  echo "error: expected exit 3 for non-site zip, got $fetch_rc" >&2
+  exit 1
+}
+
 # --- assemble.sh mode validation ---
 assemble="$root/assemble/assemble.sh"
 chmod +x "$assemble"

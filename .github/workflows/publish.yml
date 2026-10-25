@@ -53,7 +53,9 @@ jobs:
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Wait (turnstyle) + export can stack under PR bursts; prefer waiting
+    # before build so the budget is not spent idle after a finished delta.
+    timeout-minutes: 90
     permissions:
       contents: read
       pull-requests: read
@@ -129,31 +131,14 @@ jobs:
             build-site
           sparse-checkout-cone-mode: true
 
-      - name: Build site delta
-        if: >
-          steps.plan.outputs.mode != 'remove-pr' &&
-          steps.plan.outputs.force_full != 'true'
-        uses: dytsou/fastAPI-docs-pages/assemble@${{ github.workflow_sha }}
-        with:
-          out: _delta
-          repo: ${{ github.repository }}
-          export-command: ${{ inputs.export-command }}
-          openapi-path: ${{ inputs.openapi-path }}
-          working-directory: ${{ inputs.working-directory }}
-          default-ref: origin/${{ github.event.repository.default_branch }}
-          mode: ${{ steps.plan.outputs.mode }}
-          pr: ${{ steps.plan.outputs.pr }}
-          pr-oid: ${{ steps.plan.outputs.pr_oid }}
-          require-pr: ${{ steps.plan.outputs.mode == 'pr' && steps.plan.outputs.pr || '' }}
-          title: ${{ inputs.title }}
-          renderer: ${{ inputs.renderer }}
-
+      # Wait on other runs of this caller workflow (no queue-name). A custom
+      # queue-name only matches runs whose title/name contains that substring,
+      # which typical callers omit — leaving the wait a no-op.
       - name: Wait for Pages deploy queue
         uses: softprops/turnstyle@3805450be63b8c80577dc253e8c17e9132036df4 # v3.3.3
         with:
           poll-interval-seconds: 20
           same-branch-only: false
-          queue-name: github-pages-api-docs
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
@@ -180,6 +165,26 @@ jobs:
             exit "$rc"
           fi
           echo "has_base=true" >>"$GITHUB_OUTPUT"
+
+      - name: Build site delta
+        if: >
+          steps.plan.outputs.force_full != 'true' &&
+          steps.base.outputs.has_base == 'true' &&
+          steps.plan.outputs.mode != 'remove-pr'
+        uses: dytsou/fastAPI-docs-pages/assemble@${{ github.workflow_sha }}
+        with:
+          out: _delta
+          repo: ${{ github.repository }}
+          export-command: ${{ inputs.export-command }}
+          openapi-path: ${{ inputs.openapi-path }}
+          working-directory: ${{ inputs.working-directory }}
+          default-ref: origin/${{ github.event.repository.default_branch }}
+          mode: ${{ steps.plan.outputs.mode }}
+          pr: ${{ steps.plan.outputs.pr }}
+          pr-oid: ${{ steps.plan.outputs.pr_oid }}
+          require-pr: ${{ steps.plan.outputs.mode == 'pr' && steps.plan.outputs.pr || '' }}
+          title: ${{ inputs.title }}
+          renderer: ${{ inputs.renderer }}
 
       - name: Full assemble fallback
         id: full
@@ -222,6 +227,8 @@ jobs:
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: ${{ inputs.pages-out }}
+          # Default retention is 1 day; keep a merge base available longer.
+          retention-days: 7
 
   deploy:
     name: Deploy to GitHub Pages

@@ -199,7 +199,7 @@ GitHub Pages replaces the whole site on every deploy. This workflow still does t
 | PR closed | Removes that PR’s preview tree |
 | `workflow_dispatch` | Full rebuild of main + all open same-repo PR previews |
 
-If no prior Pages artifact is available (first deploy, or expired artifact), that run falls back to a full assemble. Concurrent publishes may wait on the deploy queue for a bit; they should finish green rather than cancel each other.
+If no prior Pages artifact is available (first deploy, or expired artifact), that run falls back to a full assemble. Concurrent publishes of the **same caller workflow** wait on a deploy queue across branches (`same-branch-only: false`) so they finish green rather than cancel each other. Prefer one caller workflow per repo for that queue to cover all PR publishes.
 
 ### Deployments history
 
