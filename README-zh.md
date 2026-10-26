@@ -121,7 +121,7 @@ with:
 | `both`        | `/docs/` 為 Swagger UI，`/redoc/` 為 Redocly |
 
 
-Redocly 建置使用 pinned 的 `@redocly/cli`（經 `npx`；需要時會自動 setup Node.js）。
+Redocly 建置使用 pinned 的 `@redocly/cli`（Redoc 3，`build-docs --inlineBundle`；經 `npx`；需要時會自動 setup Node.js）。
 
 ### 範例（只建 Redocly）
 

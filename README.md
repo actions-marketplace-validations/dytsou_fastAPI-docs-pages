@@ -120,7 +120,7 @@ Set `renderer` on the reusable workflow (or `build-site` / `assemble`):
 | `redocly` | Redocly HTML at `/docs/` |
 | `both` | Swagger UI at `/docs/` and Redocly at `/redoc/` |
 
-Redocly builds use a pinned `@redocly/cli` via `npx` (Node.js is set up automatically when needed).
+Redocly builds use a pinned `@redocly/cli` (Redoc 3, `build-docs --inlineBundle`) via `npx`. Node.js is set up automatically when needed.
 
 ### Example (Redocly only)
 
