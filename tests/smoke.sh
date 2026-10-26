@@ -39,13 +39,17 @@ site="$tmpdir/site-swagger"
 grep -q 'supportedSubmitMethods: \[\]' "$site/docs/index.html"
 grep -q './openapi.json' "$site/docs/index.html"
 
-# --- build-site (redocly) ---
+# --- build-site (redocly / Redoc 3 + inlineBundle) ---
 site_redoc="$tmpdir/site-redocly"
 "$root/build-site/build.sh" --openapi "$spec" --out "$site_redoc" --title "Smoke API" --renderer redocly
 [[ -f "$site_redoc/docs/index.html" ]]
 [[ -f "$site_redoc/docs/openapi.json" ]]
 [[ ! -e "$site_redoc/docs/swagger-ui-bundle.js" ]]
 grep -qiE 'redoc|rebilly' "$site_redoc/docs/index.html"
+grep -q 'type="module"' "$site_redoc/docs/index.html"
+# Inline bundle: no Redoc CDN script; file is large enough to hold the embed.
+! grep -qE 'src="https://cdn\.redoc\.ly/' "$site_redoc/docs/index.html"
+[[ "$(wc -c <"$site_redoc/docs/index.html")" -gt 100000 ]]
 
 # --- build-site (both) ---
 site_both="$tmpdir/site-both"

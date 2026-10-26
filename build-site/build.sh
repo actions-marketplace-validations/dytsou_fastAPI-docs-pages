@@ -6,7 +6,7 @@ set -euo pipefail
 
 # Pin versions; bump intentionally when upgrading.
 SWAGGER_UI_VERSION="${SWAGGER_UI_VERSION:-5.33.3}"
-REDOCLY_CLI_VERSION="${REDOCLY_CLI_VERSION:-2.64.1}"
+REDOCLY_CLI_VERSION="${REDOCLY_CLI_VERSION:-2.71.0}"
 CDN_BASE="https://cdn.jsdelivr.net/npm/swagger-ui-dist@${SWAGGER_UI_VERSION}"
 
 openapi=""
@@ -102,11 +102,13 @@ build_redocly() {
     return 1
   fi
 
-  # Self-contained HTML via Redocly CLI (pinned).
-  npx --yes "@redocly/cli@${REDOCLY_CLI_VERSION}" build-docs "$openapi_abs" \
+  # Redoc 3 HTML; --inlineBundle embeds the JS so Pages does not need the CDN.
+  # Telemetry off: static docs should not phone home from readers' browsers.
+  REDOCLY_TELEMETRY=off npx --yes "@redocly/cli@${REDOCLY_CLI_VERSION}" build-docs \
+    "$openapi_abs" \
     --output "$docs_dir/index.html" \
     --title "$title" \
-    --disableGoogleFont
+    --inlineBundle
 }
 
 case "$renderer" in
