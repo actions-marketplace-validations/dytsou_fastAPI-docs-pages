@@ -138,6 +138,7 @@ jobs:
 
             - Enable **Settings → Pages → Source: GitHub Actions** on the consumer repository.
             - Fork / cross-repository PRs are skipped.
+            - Publishes are path-scoped and queued so concurrent PR docs deploys wait instead of cancelling; use `workflow_dispatch` for a full rebuild.
             - Swagger **Try it out** is disabled on the static site.
             - Docs: [README](https://github.com/dytsou/fastAPI-docs-pages#readme) · [繁體中文](https://github.com/dytsou/fastAPI-docs-pages/blob/main/README-zh.md)
 

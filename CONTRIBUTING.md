@@ -24,9 +24,9 @@ Pull requests are the best way to propose changes. We actively welcome your pull
 
 This repository is a set of **composite GitHub Actions** plus a **reusable workflow** that:
 
-1. Runs a consumer `export-command` on the default branch and each open same-repo PR worktree.
+1. Runs a consumer `export-command` on the git trees needed for the event (main only, one PR preview, or a full rebuild).
 2. Builds a static site from the resulting OpenAPI JSON (`swagger`, `redocly`, or `both`).
-3. Deploys the site to GitHub Pages, upserts preview links on the PR body, and prunes Deployments history for the active ref.
+3. Merges that delta into the previous Pages artifact under a deploy queue, deploys to GitHub Pages, upserts preview links on the PR body, and prunes Deployments history for the active ref.
 
 Primary entry for consumers:
 
@@ -37,10 +37,10 @@ Layout:
 | Path | Role |
 | ---- | ---- |
 | `build-site/` | OpenAPI JSON → static docs |
-| `assemble/` | Main + PR preview trees |
+| `assemble/` | Path-scoped or full site assemble; merge/fetch helpers for incremental deploys |
 | `upsert-pr-body/` | PR description link block |
 | `upsert-deployments/` | Prune GitHub Deployments history for a ref |
-| `.github/workflows/publish.yml` | Thin reusable workflow (build → deploy → PR body + deployments prune) |
+| `.github/workflows/publish.yml` | Reusable workflow (delta build → queue → merge/deploy → PR body + deployments prune) |
 | `.github/workflows/release.yml` | Semver tag → GitHub Release + major tag |
 
 ## Local development

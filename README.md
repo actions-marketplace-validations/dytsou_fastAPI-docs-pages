@@ -120,7 +120,7 @@ Set `renderer` on the reusable workflow (or `build-site` / `assemble`):
 | `redocly` | Redocly HTML at `/docs/` |
 | `both` | Swagger UI at `/docs/` and Redocly at `/redoc/` |
 
-Redocly builds use a pinned `@redocly/cli` via `npx` (Node.js is set up automatically when needed).
+Redocly builds use a pinned `@redocly/cli` (Redoc 3, `build-docs --inlineBundle`) via `npx`. Node.js is set up automatically when needed.
 
 ### Example (Redocly only)
 
@@ -188,6 +188,19 @@ Prefer the reusable workflow. Use these when you need a custom deploy pipeline:
 2. A command that can emit valid OpenAPI 3 JSON for any git ref you care about
 3. Workflow permissions: `contents: read`, `pages: write`, `id-token: write`, and `pull-requests: write` (for PR body links)
 
+### Incremental publishes
+
+GitHub Pages replaces the whole site on every deploy. This workflow still does that, but each event only **rebuilds the paths it needs**, then merges into the previous site under a real queue (so sibling PR publishes wait instead of showing **Cancelled**):
+
+| Event | What updates |
+| ----- | ------------ |
+| PR opened / synchronize / reopened | That PR’s `pr-preview/pr-<n>/` only |
+| Push to the default branch | Main docs only (open PR previews kept) |
+| PR closed | Removes that PR’s preview tree |
+| `workflow_dispatch` | Full rebuild of main + all open same-repo PR previews |
+
+If no prior Pages artifact is available (first deploy, or expired artifact), that run falls back to a full assemble. Concurrent publishes of the **same caller workflow** wait on a deploy queue across branches (`same-branch-only: false`) so they finish green rather than cancel each other. Prefer one caller workflow per repo for that queue to cover all PR publishes.
+
 ### Deployments history
 
 After each successful Pages deploy, the reusable workflow calls
@@ -225,9 +238,11 @@ If something is not working:
 | What you see | Likely cause |
 | ------------ | ------------ |
 | Build skipped on a PR | Fork / cross-repository PR (not supported in v1) |
+| Publish job waiting a long time | Deploy queue — another Pages publish is in flight (expected) |
 | `export-command did not write …` | Path mismatch between `openapi-path` and where the command writes |
 | Empty / broken Swagger UI | Invalid OpenAPI JSON from the export step |
 | PR body unchanged | Job lacks `pull-requests: write`, or body already matches |
+| Preview missing after many PRs | Re-run with `workflow_dispatch` for a full rebuild |
 
 ## Contributing
 

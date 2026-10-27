@@ -42,6 +42,20 @@ inputs:
       PR-body upsert) when that preview is missing or failed to build.
     required: false
     default: ''
+  mode:
+    description: >-
+      Assemble scope: full (main + all open same-repo PRs), main (default
+      branch only), or pr (single PR preview under pr-preview/pr-<n>/).
+    required: false
+    default: 'full'
+  pr:
+    description: 'PR number for mode=pr'
+    required: false
+    default: ''
+  pr-oid:
+    description: 'Optional head OID for mode=pr (otherwise resolved via gh)'
+    required: false
+    default: ''
   title:
     description: 'HTML title for the docs page'
     required: false
@@ -88,5 +102,14 @@ runs:
         fi
         if [[ -n "${{ inputs.require-pr }}" ]]; then
           args+=(--require-pr "${{ inputs.require-pr }}")
+        fi
+        if [[ -n "${{ inputs.mode }}" ]]; then
+          args+=(--mode "${{ inputs.mode }}")
+        fi
+        if [[ -n "${{ inputs.pr }}" ]]; then
+          args+=(--pr "${{ inputs.pr }}")
+        fi
+        if [[ -n "${{ inputs.pr-oid }}" ]]; then
+          args+=(--pr-oid "${{ inputs.pr-oid }}")
         fi
         "${{ github.action_path }}/assemble.sh" "${args[@]}"
