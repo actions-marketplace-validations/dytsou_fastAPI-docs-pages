@@ -171,7 +171,7 @@ jobs:
           steps.plan.outputs.force_full != 'true' &&
           steps.base.outputs.has_base == 'true' &&
           steps.plan.outputs.mode != 'remove-pr'
-        uses: dytsou/fastAPI-docs-pages/assemble@${{ github.workflow_sha }}
+        uses: ./.api-docs-pages-src/assemble
         with:
           out: _delta
           repo: ${{ github.repository }}
@@ -191,7 +191,7 @@ jobs:
         if: >
           steps.plan.outputs.force_full == 'true' ||
           steps.base.outputs.has_base != 'true'
-        uses: dytsou/fastAPI-docs-pages/assemble@${{ github.workflow_sha }}
+        uses: ./.api-docs-pages-src/assemble
         with:
           out: ${{ inputs.pages-out }}
           repo: ${{ github.repository }}
