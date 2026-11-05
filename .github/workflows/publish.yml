@@ -123,8 +123,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: dytsou/fastAPI-docs-pages
-          # Same commit as this reusable workflow (not the caller's SHA).
-          ref: ${{ github.workflow_sha }}
+          # Check out helpers at main, which tracks the same release as this
+          # reusable workflow. github.workflow_sha resolves to the caller's
+          # SHA in a cross-repo reusable workflow call and does not exist here.
+          ref: main
           path: .api-docs-pages-src
           sparse-checkout: |
             assemble
