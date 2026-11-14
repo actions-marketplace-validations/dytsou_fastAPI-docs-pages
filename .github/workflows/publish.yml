@@ -137,7 +137,7 @@ jobs:
       # queue-name only matches runs whose title/name contains that substring,
       # which typical callers omit — leaving the wait a no-op.
       - name: Wait for Pages deploy queue
-        uses: softprops/turnstyle@3805450be63b8c80577dc253e8c17e9132036df4 # v3.3.3
+        uses: softprops/turnstyle@205d0f5001f3666ce880d22e0d885f2dac989327 # v3.3.4
         with:
           poll-interval-seconds: 20
           same-branch-only: false
